@@ -106,7 +106,7 @@ class ServicePolicy
     {
         $teamId = $this->getTeamId($service);
 
-        return $teamId !== null && $user->isAdminOfTeam($teamId);
+        return $teamId !== null && $user->isDeployerOfTeam($teamId);
     }
 
     /**

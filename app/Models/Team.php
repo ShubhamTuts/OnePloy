@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Actions\User\RevokeUserTeamTokens;
+use App\Enums\TenantStatus;
 use App\Events\ServerReachabilityChanged;
 use App\Notifications\Channels\SendsDiscord;
 use App\Notifications\Channels\SendsEmail;
@@ -10,6 +11,7 @@ use App\Notifications\Channels\SendsPushover;
 use App\Notifications\Channels\SendsSlack;
 use App\Traits\HasNotificationSettings;
 use App\Traits\HasSafeStringAttribute;
+use App\Traits\IsTenant;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -39,7 +41,7 @@ use OpenApi\Attributes as OA;
 
 class Team extends Model implements SendsDiscord, SendsEmail, SendsPushover, SendsSlack
 {
-    use HasFactory, HasNotificationSettings, HasSafeStringAttribute, Notifiable;
+    use HasFactory, HasNotificationSettings, HasSafeStringAttribute, IsTenant, Notifiable;
 
     protected $fillable = [
         'name',
@@ -48,6 +50,7 @@ class Team extends Model implements SendsDiscord, SendsEmail, SendsPushover, Sen
         'show_boarding',
         'custom_server_limit',
         'is_mcp_server_enabled',
+        'reseller_id',
     ];
 
     protected $attributes = [
@@ -57,6 +60,9 @@ class Team extends Model implements SendsDiscord, SendsEmail, SendsPushover, Sen
     protected $casts = [
         'personal_team' => 'boolean',
         'is_mcp_server_enabled' => 'boolean',
+        'tenant_status' => TenantStatus::class,
+        'suspended_at' => 'datetime',
+        'max_cpus' => 'float',
     ];
 
     protected static function booted()

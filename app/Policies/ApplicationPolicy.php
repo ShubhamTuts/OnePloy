@@ -103,7 +103,7 @@ class ApplicationPolicy
     {
         $teamId = $this->getTeamId($application);
 
-        return $teamId !== null && $user->isAdminOfTeam($teamId);
+        return $teamId !== null && $user->isDeployerOfTeam($teamId);
     }
 
     /**
@@ -113,7 +113,7 @@ class ApplicationPolicy
     {
         $teamId = $this->getTeamId($application);
 
-        return $teamId !== null && $user->isAdminOfTeam($teamId);
+        return $teamId !== null && $user->isDeployerOfTeam($teamId);
     }
 
     /**

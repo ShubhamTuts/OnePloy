@@ -91,4 +91,26 @@ class TeamPolicy
 
         return $user->isAdminOfTeam($team->id);
     }
+
+    /**
+     * Determine whether the user can see the tenant from a platform perspective
+     * (Super Admin, or the reseller that owns it) without being a team member.
+     */
+    public function viewAsPlatform(User $user, Team $team): bool
+    {
+        return $user->canManageTenant($team);
+    }
+
+    /**
+     * Determine whether the user can change the tenant's plan, quotas or lifecycle
+     * status. Tenant owners must not be able to raise their own limits.
+     */
+    public function manageTenant(User $user, Team $team): bool
+    {
+        if ($team->isPlatformTeam()) {
+            return $user->isSuperAdmin();
+        }
+
+        return $user->canManageTenant($team);
+    }
 }

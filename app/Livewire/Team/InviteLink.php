@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Team;
 
+use App\Enums\Role;
 use App\Models\TeamInvitation;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -9,6 +10,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 
 class InviteLink extends Component
@@ -19,10 +21,13 @@ class InviteLink extends Component
 
     public string $role = 'member';
 
-    protected $rules = [
-        'email' => 'required|email',
-        'role' => 'required|string',
-    ];
+    protected function rules(): array
+    {
+        return [
+            'email' => 'required|email',
+            'role' => ['required', Rule::enum(Role::class)],
+        ];
+    }
 
     public function mount()
     {
@@ -57,11 +62,8 @@ class InviteLink extends Component
 
             // Prevent privilege escalation: users cannot invite someone with higher privileges
             $userRole = auth()->user()->role();
-            if (is_null($userRole) || ($userRole === 'member' && in_array($this->role, ['admin', 'owner']))) {
-                throw new \Exception('Members cannot invite admins or owners.');
-            }
-            if ($userRole === 'admin' && $this->role === 'owner') {
-                throw new \Exception('Admins cannot invite owners.');
+            if (is_null($userRole) || Role::from($this->role)->gt($userRole)) {
+                throw new \Exception('You cannot invite someone with more privileges than you.');
             }
 
             $this->email = strtolower($this->email);

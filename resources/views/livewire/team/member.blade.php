@@ -56,6 +56,12 @@
                                     Make admin
                                 </button>
                             @endif
+                            @if (data_get($member, 'pivot.role') !== 'deployer')
+                                <button type="button" class="listbox-option justify-start!"
+                                    wire:click="makeDeployer" @click="open = false">
+                                    Make deployer
+                                </button>
+                            @endif
                             @if (data_get($member, 'pivot.role') !== 'member')
                                 <button type="button" class="listbox-option justify-start!"
                                     wire:click="makeReadonly" @click="open = false">
@@ -63,15 +69,22 @@
                                 </button>
                             @endif
                         @elseif (Auth::user()->isAdmin())
-                            @if (data_get($member, 'pivot.role') === 'admin')
-                                <button type="button" class="listbox-option justify-start!"
-                                    wire:click="makeReadonly" @click="open = false">
-                                    Make member
-                                </button>
-                            @elseif (data_get($member, 'pivot.role') === 'member')
+                            @if (data_get($member, 'pivot.role') !== 'admin')
                                 <button type="button" class="listbox-option justify-start!" wire:click="makeAdmin"
                                     @click="open = false">
                                     Make admin
+                                </button>
+                            @endif
+                            @if (data_get($member, 'pivot.role') !== 'deployer')
+                                <button type="button" class="listbox-option justify-start!"
+                                    wire:click="makeDeployer" @click="open = false">
+                                    Make deployer
+                                </button>
+                            @endif
+                            @if (data_get($member, 'pivot.role') !== 'member')
+                                <button type="button" class="listbox-option justify-start!"
+                                    wire:click="makeReadonly" @click="open = false">
+                                    Make member
                                 </button>
                             @endif
                         @endif

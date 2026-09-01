@@ -29,6 +29,7 @@
                     <x-forms.listbox id="role" label="Role" :options="array_values(array_filter([
                         auth()->user()->role() === 'owner' ? ['value' => 'owner', 'label' => 'Owner'] : null,
                         ['value' => 'admin', 'label' => 'Admin'],
+                        ['value' => 'deployer', 'label' => 'Deployer'],
                         ['value' => 'member', 'label' => 'Member'],
                     ]))" />
                 </div>

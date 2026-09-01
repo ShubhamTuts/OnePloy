@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Application;
+use App\Models\GithubApp;
 use App\Models\Service;
 use App\Models\StandaloneClickhouse;
 use App\Models\StandaloneDragonfly;

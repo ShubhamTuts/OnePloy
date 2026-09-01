@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Actions\User\RevokeUserTeamTokens;
+use App\Enums\PlatformRole;
+use App\Enums\Role;
 use App\Jobs\UpdateStripeCustomerEmailJob;
 use App\Notifications\Channels\SendsEmail;
 use App\Notifications\TransactionalEmails\EmailChangeVerification;
@@ -431,6 +433,73 @@ class User extends Authenticatable implements SendsEmail
 
         // Check if user is admin or owner of root team
         return $this->isAdminOfTeam(0);
+    }
+
+    /**
+     * Platform operator: admin or owner of the root team (id 0).
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->isInstanceAdmin();
+    }
+
+    public function reseller()
+    {
+        return $this->hasOne(Reseller::class, 'owner_id');
+    }
+
+    public function isReseller(): bool
+    {
+        return (bool) $this->reseller?->isActive();
+    }
+
+    /**
+     * Highest platform level this user holds, optionally evaluated for a specific team.
+     */
+    public function platformRole(?Team $team = null): PlatformRole
+    {
+        if ($this->isSuperAdmin()) {
+            return PlatformRole::SuperAdmin;
+        }
+
+        if ($this->isReseller()) {
+            return PlatformRole::Reseller;
+        }
+
+        $team ??= $this->currentTeam();
+
+        if ($team && $this->isAdminOfTeam($team->id)) {
+            return PlatformRole::Tenant;
+        }
+
+        return PlatformRole::SubUser;
+    }
+
+    public function roleEnumInTeam(int $teamId): ?Role
+    {
+        $role = $this->roleInTeam($teamId);
+
+        return $role ? Role::tryFrom($role) : null;
+    }
+
+    /**
+     * Whether the user holds at least the deployer role in the given team.
+     */
+    public function isDeployerOfTeam(int $teamId): bool
+    {
+        return (bool) $this->roleEnumInTeam($teamId)?->gte(Role::DEPLOYER);
+    }
+
+    /**
+     * Whether the user may change plan, quotas or lifecycle status of a tenant.
+     */
+    public function canManageTenant(Team $team): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        return $this->isReseller() && $this->reseller->id === $team->reseller_id;
     }
 
     public function requestEmailChange(string $newEmail): void

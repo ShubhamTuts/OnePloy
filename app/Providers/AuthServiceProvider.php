@@ -18,6 +18,7 @@ use App\Models\InstanceSettings;
 use App\Models\PrivateKey;
 use App\Models\Project;
 use App\Models\PushoverNotificationSettings;
+use App\Models\Reseller;
 use App\Models\S3Storage;
 use App\Models\ScheduledTask;
 use App\Models\Server;
@@ -55,6 +56,7 @@ use App\Policies\InstanceSettingsPolicy;
 use App\Policies\NotificationPolicy;
 use App\Policies\PrivateKeyPolicy;
 use App\Policies\ProjectPolicy;
+use App\Policies\ResellerPolicy;
 use App\Policies\ResourceCreatePolicy;
 use App\Policies\S3StoragePolicy;
 use App\Policies\ScheduledTaskPolicy;
@@ -126,6 +128,9 @@ class AuthServiceProvider extends ServiceProvider
         // Team policy
         Team::class => TeamPolicy::class,
 
+        // Reseller policy
+        Reseller::class => ResellerPolicy::class,
+
         // Git source policies
         GithubApp::class => GithubAppPolicy::class,
         GitlabApp::class => GitlabAppPolicy::class,
@@ -148,6 +153,11 @@ class AuthServiceProvider extends ServiceProvider
         // Register gate for terminal access
         Gate::define('canAccessTerminal', function ($user) {
             return $user->isAdmin() || $user->isOwner();
+        });
+
+        // Platform operator access (OnePloy Super Admin)
+        Gate::define('viewPlatformAdmin', function ($user) {
+            return $user->isSuperAdmin();
         });
     }
 }
