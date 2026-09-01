@@ -307,9 +307,13 @@ class User extends Authenticatable implements SendsEmail
         return $this->role() === 'owner';
     }
 
+    /**
+     * True for roles below admin. Used to redact credentials and secret values,
+     * so every non-administrative role must be included here.
+     */
     public function isMember()
     {
-        return $this->role() === 'member';
+        return in_array($this->role(), [Role::MEMBER->value, Role::DEPLOYER->value], true);
     }
 
     public function isAdminFromSession()

@@ -5,9 +5,12 @@
  *
  * Quota values are per tenant (team). `null` means unlimited. A quota set on the
  * team row overrides the plan value; the plan value is the fallback.
+ *
+ * A team with no plan is unlimited, so existing installs are unaffected until a
+ * plan is assigned. Set ONEPLOY_DEFAULT_PLAN to limit unassigned teams too.
  */
 return [
-    'default_plan' => env('ONEPLOY_DEFAULT_PLAN', 'free'),
+    'default_plan' => env('ONEPLOY_DEFAULT_PLAN'),
 
     /**
      * Quota columns on the teams table, in resolution order.

@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('slug')->unique();
             $table->string('status')->default('active');
-            $table->foreignId('owner_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('owner_id')->nullable()->unique()->constrained('users')->nullOnDelete();
             $table->text('description')->nullable();
 
             // Aggregate limits across every tenant owned by this reseller. null = unlimited.

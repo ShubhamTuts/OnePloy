@@ -43,6 +43,23 @@ test('tenant falls back to the plan quota and prefers its own override', functio
     expect($team->fresh()->quota('max_applications'))->toBe(12);
 });
 
+test('a team without a plan stays unlimited', function () {
+    config()->set('tenancy.plans.free.max_applications', 1);
+
+    $team = Team::factory()->create();
+
+    expect($team->plan)->toBeNull()
+        ->and($team->planSlug())->toBeNull()
+        ->and($team->quota('max_applications'))->toBeNull();
+});
+
+test('a default plan applies to teams without their own plan', function () {
+    config()->set('tenancy.default_plan', 'free');
+    config()->set('tenancy.plans.free.max_applications', 1);
+
+    expect(Team::factory()->create()->quota('max_applications'))->toBe(1);
+});
+
 test('platform team has unlimited quotas', function () {
     $team = Team::factory()->create();
     $team->forceFill(['id' => 0])->save();
@@ -163,6 +180,27 @@ test('a super admin can manage every tenant and reseller', function () {
     expect($superAdmin->can('manageTenant', $tenant))->toBeTrue()
         ->and($superAdmin->can('manageQuota', $reseller))->toBeTrue()
         ->and($superAdmin->can('manageStatus', $reseller))->toBeTrue();
+});
+
+test('a deployer is treated as a member for credential redaction', function () {
+    $team = Team::factory()->create();
+
+    foreach (['member', 'deployer'] as $role) {
+        $user = User::factory()->create();
+        $team->members()->attach($user->id, ['role' => $role]);
+        session(['currentTeam' => $team]);
+
+        $user = $user->fresh();
+
+        expect($user->isMember())->toBeTrue()
+            ->and($user->isAdmin())->toBeFalse();
+    }
+
+    $admin = User::factory()->create();
+    $team->members()->attach($admin->id, ['role' => 'admin']);
+    session(['currentTeam' => $team]);
+
+    expect($admin->fresh()->isMember())->toBeFalse();
 });
 
 test('a suspended reseller loses tenant management rights', function () {

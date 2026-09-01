@@ -80,7 +80,7 @@ trait IsTenant
         ])->save();
     }
 
-    public function planSlug(): string
+    public function planSlug(): ?string
     {
         return $this->plan ?? config('tenancy.default_plan');
     }
@@ -90,7 +90,9 @@ trait IsTenant
      */
     public function planConfig(): array
     {
-        return config('tenancy.plans.'.$this->planSlug(), []);
+        $plan = $this->planSlug();
+
+        return blank($plan) ? [] : config('tenancy.plans.'.$plan, []);
     }
 
     public function assignPlan(?string $plan): void
