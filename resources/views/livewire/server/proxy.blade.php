@@ -74,7 +74,7 @@
                             ]" />
                         @if ($redirectEnabled)
                             <x-forms.input canGate="update" :canResource="$server"
-                                placeholder="https://app.coolify.io" id="redirectUrl"
+                                placeholder="https://app.oneploy.dev" id="redirectUrl"
                                 label="Redirect URL"
                                 helper="Leave empty to keep a custom 503 response without redirecting." />
                         @endif

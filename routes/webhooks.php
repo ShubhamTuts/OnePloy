@@ -26,4 +26,5 @@ Route::post('/source/gitea/events/manual', [Gitea::class, 'manual']);
 
 Route::post('/payments/stripe/events', [Stripe::class, 'events']);
 Route::post('/payments/{provider}/oneploy', [PaymentWebhookController::class, 'handle'])
-    ->whereIn('provider', ['stripe', 'razorpay', 'paypal', 'manual']);
+    ->middleware('throttle:120,1')
+    ->whereIn('provider', ['stripe', 'razorpay']);

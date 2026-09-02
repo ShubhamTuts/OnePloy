@@ -362,7 +362,7 @@ class ApplicationsController extends Controller
                                     type: 'object',
                                     properties: [
                                         'name' => ['type' => 'string', 'description' => 'The service name as defined in docker-compose.'],
-                                        'domain' => ['type' => 'string', 'description' => 'Comma-separated list of URLs (e.g. "https://app.coolify.io,https://app2.coolify.io")'],
+                                        'domain' => ['type' => 'string', 'description' => 'Comma-separated list of URLs (e.g. "https://app.oneploy.dev,https://app2.oneploy.dev")'],
                                         'redirect' => ['type' => 'string', 'nullable' => true, 'description' => 'Per-service www/non-www redirect for this compose service.', 'enum' => ['www', 'non-www', 'both']],
                                     ],
                                 ),
@@ -556,7 +556,7 @@ class ApplicationsController extends Controller
                                     type: 'object',
                                     properties: [
                                         'name' => ['type' => 'string', 'description' => 'The service name as defined in docker-compose.'],
-                                        'domain' => ['type' => 'string', 'description' => 'Comma-separated list of URLs (e.g. "https://app.coolify.io,https://app2.coolify.io")'],
+                                        'domain' => ['type' => 'string', 'description' => 'Comma-separated list of URLs (e.g. "https://app.oneploy.dev,https://app2.oneploy.dev")'],
                                         'redirect' => ['type' => 'string', 'nullable' => true, 'description' => 'Per-service www/non-www redirect for this compose service.', 'enum' => ['www', 'non-www', 'both']],
                                     ],
                                 ),
@@ -750,7 +750,7 @@ class ApplicationsController extends Controller
                                     type: 'object',
                                     properties: [
                                         'name' => ['type' => 'string', 'description' => 'The service name as defined in docker-compose.'],
-                                        'domain' => ['type' => 'string', 'description' => 'Comma-separated list of URLs (e.g. "https://app.coolify.io,https://app2.coolify.io")'],
+                                        'domain' => ['type' => 'string', 'description' => 'Comma-separated list of URLs (e.g. "https://app.oneploy.dev,https://app2.oneploy.dev")'],
                                         'redirect' => ['type' => 'string', 'nullable' => true, 'description' => 'Per-service www/non-www redirect for this compose service.', 'enum' => ['www', 'non-www', 'both']],
                                     ],
                                 ),
@@ -2680,7 +2680,7 @@ class ApplicationsController extends Controller
                                     type: 'object',
                                     properties: [
                                         'name' => ['type' => 'string', 'description' => 'The service name as defined in docker-compose.'],
-                                        'domain' => ['type' => 'string', 'description' => 'Comma-separated list of URLs (e.g. "https://app.coolify.io,https://app2.coolify.io")'],
+                                        'domain' => ['type' => 'string', 'description' => 'Comma-separated list of URLs (e.g. "https://app.oneploy.dev,https://app2.oneploy.dev")'],
                                         'redirect' => ['type' => 'string', 'nullable' => true, 'description' => 'Per-service www/non-www redirect for this compose service.', 'enum' => ['www', 'non-www', 'both']],
                                     ],
                                 ),

@@ -153,7 +153,7 @@
                                     <p class="text-[12px] leading-5" style="color: var(--coollabs-subtle)">
                                         If something goes wrong, check the
                                         <a class="font-medium text-coollabs underline decoration-coollabs/30 underline-offset-2 hover:decoration-coollabs dark:text-warning dark:decoration-warning/30 dark:hover:decoration-warning"
-                                            href="https://coolify.io/docs/upgrade" target="_blank"
+                                            href="{{ config('oneploy.docs_url') }}" target="_blank"
                                             rel="noopener noreferrer">upgrade guide</a>
                                         or the logs on the server at
                                         <span class="font-mono text-neutral-700 dark:text-fg">/data/coolify/source/upgrade*</span>.

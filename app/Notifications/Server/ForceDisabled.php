@@ -34,39 +34,45 @@ class ForceDisabled extends CustomEmailNotification
 
     public function toDiscord(): DiscordMessage
     {
+        $billingUrl = route('oneploy.billing');
         $message = new DiscordMessage(
             title: ':cross_mark: Server disabled',
             description: "Server ({$this->server->name}) disabled because it is not paid!",
             color: DiscordMessage::errorColor(),
         );
 
-        $message->addField('Please update your subscription to enable the server again!', '[Link](https://app.coolify.io/subscription)');
+        $message->addField('Please update your subscription to enable the server again!', "[Link]({$billingUrl})");
 
         return $message;
     }
 
     public function toTelegram(): array
     {
+        $billingUrl = route('oneploy.billing');
+
         return [
-            'message' => "OnePloy: Server ({$this->server->name}) disabled because it is not paid!\n All automations and integrations are stopped.\nPlease update your subscription to enable the server again [here](https://app.coolify.io/subscription).",
+            'message' => "OnePloy: Server ({$this->server->name}) disabled because it is not paid!\n All automations and integrations are stopped.\nPlease update your subscription to enable the server again [here]({$billingUrl}).",
         ];
     }
 
     public function toPushover(): PushoverMessage
     {
+        $billingUrl = route('oneploy.billing');
+
         return new PushoverMessage(
             title: 'Server disabled',
             level: 'error',
-            message: "Server ({$this->server->name}) disabled because it is not paid!\n All automations and integrations are stopped.<br/>Please update your subscription to enable the server again [here](https://app.coolify.io/subscription).",
+            message: "Server ({$this->server->name}) disabled because it is not paid!\n All automations and integrations are stopped.<br/>Please update your subscription to enable the server again [here]({$billingUrl}).",
         );
     }
 
     public function toSlack(): SlackMessage
     {
+        $billingUrl = route('oneploy.billing');
         $title = 'Server disabled';
         $description = "Server ({$this->server->name}) disabled because it is not paid!\n";
         $description .= "All automations and integrations are stopped.\n\n";
-        $description .= 'Please update your subscription to enable the server again: https://app.coolify.io/subscription';
+        $description .= "Please update your subscription to enable the server again: {$billingUrl}";
 
         return new SlackMessage(
             title: $title,

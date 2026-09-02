@@ -23,7 +23,7 @@ services:
     env_file:
       - /data/coolify/source/.env
     ports:
-      - "${APP_PORT:-8000}:8080"
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-8000}:8080"
     expose:
       - "8080"
     healthcheck:
@@ -65,8 +65,8 @@ services:
   soketi:
     image: "${ONEPLOY_REALTIME_IMAGE:-oneploy/realtime:local}"
     ports:
-      - "${SOKETI_PORT:-6001}:6001"
-      - "6002:6002"
+      - "127.0.0.1:${SOKETI_PORT:-6001}:6001"
+      - "127.0.0.1:6002:6002"
     volumes:
       - /data/coolify/ssh:/var/www/html/storage/app/ssh
     environment:

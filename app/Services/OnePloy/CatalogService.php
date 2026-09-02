@@ -24,7 +24,10 @@ class CatalogService
             ];
 
             foreach ($families as $index => $family) {
-                $product = OneployProduct::updateOrCreate(['slug' => $family['slug']], $family + ['is_active' => true, 'sort_order' => $index]);
+                $product = OneployProduct::updateOrCreate(
+                    ['slug' => $family['slug']],
+                    $family + ['is_active' => $family['family'] === 'app_hosting', 'sort_order' => $index]
+                );
                 $this->seedPlan($product, 'starter', 'Starter', 0, [
                     'projects.max' => 3,
                     'applications.max' => 5,
@@ -131,11 +134,11 @@ class CatalogService
     private function seedMarketplace(): void
     {
         $apps = [
-            ['slug' => 'wordpress', 'name' => 'WordPress', 'category' => 'cms', 'certification' => 'managed', 'product_level' => 'managed_product', 'template_file' => 'wordpress-with-mariadb.yaml'],
-            ['slug' => 'n8n', 'name' => 'n8n', 'category' => 'automation', 'certification' => 'managed', 'product_level' => 'managed_app', 'template_file' => 'n8n.yaml'],
-            ['slug' => 'openclaw', 'name' => 'OpenClaw', 'category' => 'ai', 'certification' => 'verified', 'product_level' => 'managed_app', 'template_file' => 'openclaw.yaml'],
-            ['slug' => 'hermes-agent', 'name' => 'Hermes Agent', 'category' => 'ai', 'certification' => 'verified', 'product_level' => 'managed_app', 'template_file' => 'hermes-agent-with-webui.yaml'],
-            ['slug' => 'minecraft', 'name' => 'Minecraft', 'category' => 'game', 'certification' => 'managed', 'product_level' => 'managed_product', 'template_file' => 'minecraft.yaml'],
+            ['slug' => 'wordpress', 'name' => 'WordPress', 'category' => 'cms', 'certification' => 'beta', 'product_level' => 'deployable_template', 'template_file' => 'wordpress-with-mariadb.yaml'],
+            ['slug' => 'n8n', 'name' => 'n8n', 'category' => 'automation', 'certification' => 'beta', 'product_level' => 'deployable_template', 'template_file' => 'n8n.yaml'],
+            ['slug' => 'openclaw', 'name' => 'OpenClaw', 'category' => 'ai', 'certification' => 'beta', 'product_level' => 'deployable_template', 'template_file' => 'openclaw.yaml'],
+            ['slug' => 'hermes-agent', 'name' => 'Hermes Agent', 'category' => 'ai', 'certification' => 'beta', 'product_level' => 'deployable_template', 'template_file' => 'hermes-agent-with-webui.yaml'],
+            ['slug' => 'minecraft', 'name' => 'Minecraft', 'category' => 'game', 'certification' => 'beta', 'product_level' => 'deployable_template', 'template_file' => 'minecraft.yaml'],
         ];
 
         foreach ($apps as $app) {

@@ -4,7 +4,7 @@
             <x-callout type="info" title="Required Port: {{ $requiredPort }}" class="mb-2">
                 This service requires port <strong>{{ $requiredPort }}</strong> to function correctly. All domains must include this port number (or any other port if you know what you're doing).
                 <br><br>
-                <strong>Example:</strong> https://app.coolify.io:{{ $requiredPort }},https://www.app.coolify.io:{{ $requiredPort }}
+                <strong>Example:</strong> https://app.oneploy.dev:{{ $requiredPort }},https://www.app.oneploy.dev:{{ $requiredPort }}
             </x-callout>
         @endif
 

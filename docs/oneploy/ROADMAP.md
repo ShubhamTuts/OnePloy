@@ -2,7 +2,9 @@
 
 Status date: 2026-09-02
 
-See [PLATFORM-V1.md](PLATFORM-V1.md) for the product contract, including the **Customer UI Compatibility Contract**.
+This roadmap tracks delivery against the [OnePloy Platform V1](PLATFORM-V1.md) product and architecture contract.
+
+This document records the verified repository boundary. A feature is marked complete only when its schema, authorization, user path, tests, operations, and rollback behavior exist.
 
 ## Architecture decision
 
@@ -21,7 +23,8 @@ OnePloy remains a modular Laravel control plane. A dedicated management node own
 
 ## Still required before calling the business “fully live”
 
-- Live Stripe/Razorpay/PayPal keys and signed webhook verification against real events (**external**).
+- Live Stripe/Razorpay keys and signed-webhook acceptance against real provider events (**external**).
+- PayPal checkout, server-to-server webhook verification, and reconciliation (**planned**).
 - ConnectReseller production key + IP allowlist for paid domain registration (**external**).
 - PowerDNS nameserver fleet for authoritative DNS (**external**).
 - GHCR multi-arch signed release channel (today: build-on-VPS).
@@ -30,4 +33,4 @@ OnePloy remains a modular Laravel control plane. A dedicated management node own
 
 ## Release gates
 
-The control plane can be installed and used for Git/Docker/Compose hosting after the Ubuntu installer succeeds. Charging cards, registering domains at the registrar, and serving DNS are gated on the external credentials above.
+The control plane can be installed and used for Git/Docker/Compose hosting after the Ubuntu installer and HTTPS health gate succeed. Charging cards, registering domains at the registrar, and serving DNS remain gated on provider configuration and live acceptance.

@@ -49,7 +49,12 @@
                             class="flex items-center hover:opacity-80 transition-opacity">
                             <img x-show="collapsed" x-cloak src="/oneploy-logo.png" alt="OnePloy"
                                 class="size-7 rounded-full" />
-                            <span x-show="!collapsed" class="text-[15px] font-semibold tracking-tight text-black dark:text-white">OnePloy</span>
+                            <span x-show="!collapsed" class="flex min-w-0 items-center">
+                                <img src="/oneploy-wordmark-light.png" alt="OnePloy"
+                                    class="h-5 w-auto max-w-[7rem] dark:hidden" />
+                                <img src="/oneploy-wordmark-dark.png" alt="OnePloy"
+                                    class="hidden h-5 w-auto max-w-[7rem] dark:block" />
+                            </span>
                         </a>
                         <x-version x-show="!collapsed"
                             class="!text-[10.5px] font-medium text-neutral-400 dark:text-fg-faint !opacity-100 hover:!opacity-100 dark:hover:text-fg hover:text-black" />
@@ -95,8 +100,11 @@
                         <div data-mobile-sidebar-brand
                             class="flex h-12 shrink-0 items-center gap-1.5 border-b border-neutral-200 px-4 dark:border-white/[0.06]">
                             <a href="/" {{ wireNavigate() }} title="OnePloy"
-                                class="text-[15px] font-semibold tracking-tight text-black transition-opacity hover:opacity-80 dark:text-white">
-                                OnePloy
+                                class="flex items-center transition-opacity hover:opacity-80">
+                                <img src="/oneploy-wordmark-light.png" alt="OnePloy"
+                                    class="h-5 w-auto max-w-[7rem] dark:hidden" />
+                                <img src="/oneploy-wordmark-dark.png" alt="OnePloy"
+                                    class="hidden h-5 w-auto max-w-[7rem] dark:block" />
                             </a>
                             <x-version class="!text-[10.5px] font-medium text-neutral-400 dark:text-fg-faint !opacity-100 hover:!opacity-100 hover:text-black dark:hover:text-fg" />
                         </div>

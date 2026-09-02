@@ -50,7 +50,9 @@ class StorefrontController extends Controller
             'attribution' => 'nullable|array',
         ]);
 
-        $session = $checkout->create($data, currentTeam(), $request->user()?->id);
+        $team = currentTeam();
+        abort_unless($team, 403, 'Select a team before starting checkout.');
+        $session = $checkout->create($data, $team, $request->user()?->id);
 
         return response()->json([
             'checkout' => [
@@ -63,9 +65,14 @@ class StorefrontController extends Controller
         ], 201);
     }
 
-    public function checkoutStatus(string $uuid): JsonResponse
+    public function checkoutStatus(Request $request, string $uuid): JsonResponse
     {
-        $session = OneployCheckoutSession::query()->where('uuid', $uuid)->firstOrFail();
+        $team = currentTeam();
+        abort_unless($team, 403, 'Select a team before viewing checkout.');
+        $session = OneployCheckoutSession::query()
+            ->where('team_id', $team->id)
+            ->where('uuid', $uuid)
+            ->firstOrFail();
 
         return response()->json([
             'id' => $session->uuid,

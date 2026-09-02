@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Api\ApplicationsController;
-use App\Http\Controllers\Api\StorefrontController;
 use App\Http\Controllers\Api\CloudInitScriptsController;
 use App\Http\Controllers\Api\CloudProviderTokensController;
 use App\Http\Controllers\Api\DatabasesController;
@@ -31,6 +30,7 @@ use App\Http\Controllers\Api\ServiceApplicationsController;
 use App\Http\Controllers\Api\ServiceDatabasesController;
 use App\Http\Controllers\Api\ServicesController;
 use App\Http\Controllers\Api\SharedEnvironmentVariablesController;
+use App\Http\Controllers\Api\StorefrontController;
 use App\Http\Controllers\Api\TagsController;
 use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\VolumeBackupsController;
@@ -50,7 +50,7 @@ Route::prefix('storefront/v1')->middleware('throttle:60,1')->group(function () {
     Route::get('/applications', [StorefrontController::class, 'applications']);
     Route::get('/domains/search', [StorefrontController::class, 'domainSearch']);
     Route::get('/status', [StorefrontController::class, 'status']);
-    Route::get('/checkout/{uuid}', [StorefrontController::class, 'checkoutStatus']);
+    Route::get('/checkout/{uuid}', [StorefrontController::class, 'checkoutStatus'])->middleware(['auth:sanctum']);
     Route::post('/checkout', [StorefrontController::class, 'checkout'])->middleware(['auth:sanctum']);
 });
 

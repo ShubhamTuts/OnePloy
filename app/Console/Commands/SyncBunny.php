@@ -246,6 +246,12 @@ class SyncBunny extends Command
      */
     public function handle()
     {
+        if (config('oneploy.own_releases')) {
+            $this->error('The inherited CoolLabs release sync is disabled for OnePloy-owned releases.');
+
+            return self::FAILURE;
+        }
+
         $that = $this;
         $only_bunny = $this->option('bunny');
         $nightly = select(

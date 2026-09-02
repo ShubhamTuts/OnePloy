@@ -25,6 +25,11 @@ ROOT_USERNAME="${ROOT_USERNAME:-}"
 ROOT_USER_EMAIL="${ROOT_USER_EMAIL:-}"
 ROOT_USER_PASSWORD="${ROOT_USER_PASSWORD:-}"
 
+on_error() {
+    echo "OnePloy installation stopped at line ${1}. Review the message above before retrying."
+}
+trap 'on_error ${LINENO}' ERR
+
 usage() {
     cat <<'EOF'
 OnePloy installer
@@ -62,6 +67,22 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
+FQDN="${FQDN#http://}"
+FQDN="${FQDN#https://}"
+FQDN="${FQDN%%/*}"
+if [ -n "$FQDN" ] && ! printf '%s' "$FQDN" | grep -Eq '^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$'; then
+    echo "Invalid --fqdn value: $FQDN"
+    exit 1
+fi
+if [ -n "$EMAIL" ] && ! printf '%s' "$EMAIL" | grep -Eq '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'; then
+    echo "Invalid --email value: $EMAIL"
+    exit 1
+fi
+if ! printf '%s' "$APP_PORT" | grep -Eq '^[0-9]+$' || [ "$APP_PORT" -lt 1 ] || [ "$APP_PORT" -gt 65535 ]; then
+    echo "Invalid --port value: $APP_PORT"
+    exit 1
+fi
+
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
 section() {
     echo ""
@@ -90,11 +111,27 @@ echo "FQDN:        ${FQDN:-not set — HTTP on :${APP_PORT} only}"
 echo "Email:       ${EMAIL:-not set}"
 
 OS_ID="$(. /etc/os-release; echo "${ID:-unknown}")"
+OS_VERSION="$(. /etc/os-release; echo "${VERSION_ID:-unknown}")"
+OS_CODENAME="$(. /etc/os-release; echo "${VERSION_CODENAME:-}")"
 ARCH="$(uname -m)"
-log "OS=${OS_ID} arch=${ARCH} cpu=$(nproc) ram=$(awk '/MemTotal/{printf "%.0fGiB",$2/1024/1024}' /proc/meminfo) disk=$(df -h / | awk 'NR==2{print $4}') free"
+MEMORY_GIB="$(awk '/MemTotal/{printf "%d",$2/1024/1024}' /proc/meminfo)"
+DISK_GIB="$(df -Pk / | awk 'NR==2{printf "%d",$4/1024/1024}')"
+log "OS=${OS_ID} ${OS_VERSION} arch=${ARCH} cpu=$(nproc) ram=${MEMORY_GIB}GiB disk=${DISK_GIB}GiB free"
 
-if [ "$OS_ID" != "ubuntu" ] && [ "$OS_ID" != "debian" ]; then
-    log "Warning: this installer is verified on Ubuntu 22.04/24.04. Continuing anyway."
+if [ "$OS_ID" != "ubuntu" ] || { [ "$OS_VERSION" != "22.04" ] && [ "$OS_VERSION" != "24.04" ]; }; then
+    echo "Supported operating systems: Ubuntu 22.04 LTS and Ubuntu 24.04 LTS."
+    exit 1
+fi
+if [ "$ARCH" != "x86_64" ]; then
+    echo "This source-build release is gated to x86_64 until ARM release acceptance passes."
+    exit 1
+fi
+if [ "$MEMORY_GIB" -lt 4 ] || [ "$DISK_GIB" -lt 30 ]; then
+    echo "Insufficient capacity. OnePloy requires at least 4 GiB RAM and 30 GiB free disk for installation."
+    exit 1
+fi
+if [ "$MEMORY_GIB" -lt 8 ]; then
+    log "Warning: 8 GiB RAM is recommended for the first local image build."
 fi
 
 section "1/8 Packages"
@@ -102,9 +139,15 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get install -y curl wget git jq openssl ca-certificates gnupg lsb-release
 
-section "2/8 Docker"
+section "2/8 Docker Engine"
 if ! command -v docker >/dev/null 2>&1; then
-    curl -fsSL https://get.docker.com | sh
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+    chmod a+r /etc/apt/keyrings/docker.asc
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${OS_CODENAME} stable" \
+        >/etc/apt/sources.list.d/docker.list
+    apt-get update -y
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 fi
 systemctl enable --now docker
 docker version >/dev/null
@@ -120,10 +163,7 @@ if [ ! -f /etc/docker/daemon.json ]; then
   "log-opts": {
     "max-size": "10m",
     "max-file": "3"
-  },
-  "default-address-pools": [
-    {"base":"10.0.0.0/8","size":24}
-  ]
+  }
 }
 EOL
     systemctl restart docker
@@ -135,20 +175,25 @@ mkdir -p "${DATA_DIR}/ssh/keys" "${DATA_DIR}/ssh/mux" "${DATA_DIR}/proxy/dynamic
 chown -R 9999:root "${DATA_DIR}" || true
 chmod -R 700 "${DATA_DIR}"
 
-if [ ! -f ~/.ssh/authorized_keys ]; then
-    mkdir -p ~/.ssh
-    chmod 700 ~/.ssh
-    touch ~/.ssh/authorized_keys
-    chmod 600 ~/.ssh/authorized_keys
-fi
-
 CURRENT_USER="${SUDO_USER:-root}"
+CURRENT_HOME="$(getent passwd "$CURRENT_USER" | cut -d: -f6)"
+CURRENT_GROUP="$(id -gn "$CURRENT_USER")"
+if [ -z "$CURRENT_HOME" ]; then
+    echo "Could not resolve the home directory for $CURRENT_USER."
+    exit 1
+fi
+AUTHORIZED_KEYS="${CURRENT_HOME}/.ssh/authorized_keys"
+install -d -m 700 -o "$CURRENT_USER" -g "$CURRENT_GROUP" "${CURRENT_HOME}/.ssh"
+touch "$AUTHORIZED_KEYS"
+chown "$CURRENT_USER:$CURRENT_GROUP" "$AUTHORIZED_KEYS"
+chmod 600 "$AUTHORIZED_KEYS"
+
 KEY_FILE="${DATA_DIR}/ssh/keys/id.${CURRENT_USER}@host.docker.internal"
 if [ ! -f "$KEY_FILE" ]; then
     ssh-keygen -t ed25519 -a 100 -f "$KEY_FILE" -q -N "" -C oneploy
     chown 9999 "$KEY_FILE"
-    sed -i "/oneploy\|coolify/d" ~/.ssh/authorized_keys || true
-    cat "${KEY_FILE}.pub" >> ~/.ssh/authorized_keys
+    sed -i "/oneploy\|coolify/d" "$AUTHORIZED_KEYS" || true
+    cat "${KEY_FILE}.pub" >> "$AUTHORIZED_KEYS"
     rm -f "${KEY_FILE}.pub"
 fi
 
@@ -158,7 +203,10 @@ if [ -d "${ONEPLOY_DIR}/.git" ]; then
     git -C "${ONEPLOY_DIR}" checkout "${ONEPLOY_BRANCH}"
     git -C "${ONEPLOY_DIR}" reset --hard "origin/${ONEPLOY_BRANCH}"
 else
-    rm -rf "${ONEPLOY_DIR}"
+    if [ -e "${ONEPLOY_DIR}" ] && [ -n "$(find "${ONEPLOY_DIR}" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]; then
+        echo "${ONEPLOY_DIR} exists but is not a Git checkout. Move it aside and retry."
+        exit 1
+    fi
     git clone --depth 1 --branch "${ONEPLOY_BRANCH}" "${ONEPLOY_REPO}" "${ONEPLOY_DIR}"
 fi
 
@@ -211,7 +259,7 @@ set_env REDIS_PASSWORD "$(rand_b64)"
 set_env PUSHER_APP_ID "$(rand_hex 16)"
 set_env PUSHER_APP_KEY "$(rand_hex 16)"
 set_env PUSHER_APP_SECRET "$(rand_hex 16)"
-set_env APP_PORT "$APP_PORT"
+force_env APP_PORT "$APP_PORT"
 force_env APP_NAME "OnePloy"
 force_env APP_ENV "production"
 force_env SELF_HOSTED "true"
@@ -222,6 +270,11 @@ force_env ONEPLOY_OWN_RELEASES "true"
 force_env ONEPLOY_PLATFORM "true"
 force_env ONEPLOY_APP_IMAGE "oneploy/app:local"
 force_env ONEPLOY_REALTIME_IMAGE "oneploy/realtime:local"
+if [ -n "$FQDN" ]; then
+    force_env APP_BIND_ADDRESS "127.0.0.1"
+else
+    force_env APP_BIND_ADDRESS "0.0.0.0"
+fi
 
 if [ -n "$FQDN" ]; then
     force_env APP_URL "https://${FQDN}"
@@ -254,6 +307,7 @@ fi
 
 section "6/8 Start control plane"
 cd "${SOURCE_DIR}"
+docker compose --env-file "$ENV_FILE" -f docker-compose.yml -f docker-compose.oneploy.yml config --quiet
 docker compose --env-file "$ENV_FILE" -f docker-compose.yml -f docker-compose.oneploy.yml up -d --remove-orphans
 
 section "7/8 Health"
@@ -275,7 +329,7 @@ section "8/8 Instance bootstrap"
 BOOTSTRAP_ARGS=()
 if [ -n "$FQDN" ]; then BOOTSTRAP_ARGS+=(--fqdn "https://${FQDN}"); fi
 if [ -n "$EMAIL" ]; then BOOTSTRAP_ARGS+=(--email "$EMAIL"); fi
-docker exec coolify php artisan oneploy:bootstrap "${BOOTSTRAP_ARGS[@]}" || log "Bootstrap command returned a warning; dashboard should still be reachable."
+docker exec coolify php artisan oneploy:bootstrap "${BOOTSTRAP_ARGS[@]}"
 
 PUBLIC_IP="$(detect_public_ip)"
 PRIVATE_IP="$(detect_private_ip)"
@@ -285,18 +339,42 @@ cat <<EOF
 ============================================================
  OnePloy is running
 ============================================================
-HTTP dashboard:  http://${PUBLIC_IP:-${PRIVATE_IP}}:${APP_PORT}
-Private URL:     http://${PRIVATE_IP}:${APP_PORT}
+Local recovery:  http://127.0.0.1:${APP_PORT}
 EOF
 
 if [ -n "$FQDN" ]; then
+    if [ "$(docker inspect --format='{{.State.Running}}' coolify-proxy 2>/dev/null || echo false)" != "true" ]; then
+        echo "The HTTPS proxy did not start. Check: docker logs coolify-proxy"
+        exit 1
+    fi
+
+    log "Waiting for HTTPS certificate and public health check"
+    HTTPS_READY=false
+    for i in $(seq 1 60); do
+        if curl -fsS --max-time 10 "https://${FQDN}/api/health" >/dev/null 2>&1; then
+            HTTPS_READY=true
+            break
+        fi
+        sleep 5
+    done
+    if [ "$HTTPS_READY" != "true" ]; then
+        echo "The control plane is healthy, but HTTPS validation failed for https://${FQDN}."
+        echo "Confirm DNS points to ${PUBLIC_IP:-this VPS} and ports 80/443 are open, then rerun the installer."
+        docker logs --tail 80 coolify-proxy || true
+        exit 1
+    fi
+
     cat <<EOF
 HTTPS URL:       https://${FQDN}
 
 DNS: point ${FQDN} A (and AAAA if used) to ${PUBLIC_IP:-YOUR_VPS_IP}
-Firewall: allow 22, 80, 443, and ${APP_PORT}
-SSL: Traefik issues a Let's Encrypt certificate after DNS is live and the proxy starts.
-     If https://${FQDN} is not ready yet, use the HTTP dashboard and set the instance domain in Settings.
+Firewall: allow your SSH port, 80, and 443. Port ${APP_PORT} is bound to localhost.
+SSL: active and verified through Traefik / Let's Encrypt.
+EOF
+else
+    cat <<EOF
+HTTP dashboard:  http://${PUBLIC_IP:-${PRIVATE_IP}}:${APP_PORT}
+Firewall: allow your SSH port and ${APP_PORT}. Add --fqdn for automatic HTTPS.
 EOF
 fi
 

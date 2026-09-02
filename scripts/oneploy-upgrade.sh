@@ -25,18 +25,29 @@ fi
 log "Backing up control-plane database"
 if [ "$SKIP_BACKUP" != "true" ]; then
     mkdir -p /data/coolify/backups/oneploy
-    docker exec coolify-db pg_dump -U "$(grep ^DB_USERNAME= "$ENV_FILE" | cut -d= -f2-)" "$(grep ^DB_DATABASE= "$ENV_FILE" | cut -d= -f2- || echo coolify)" \
-        > "/data/coolify/backups/oneploy/db-${DATE}.sql" || log "Database dump failed; continuing with caution"
+    DB_USERNAME_VALUE="$(grep '^DB_USERNAME=' "$ENV_FILE" | cut -d= -f2- || true)"
+    DB_DATABASE_VALUE="$(grep '^DB_DATABASE=' "$ENV_FILE" | cut -d= -f2- || true)"
+    DB_USERNAME_VALUE="${DB_USERNAME_VALUE:-coolify}"
+    DB_DATABASE_VALUE="${DB_DATABASE_VALUE:-coolify}"
+    DATABASE_BACKUP="/data/coolify/backups/oneploy/db-${DATE}.sql"
+    if ! docker exec coolify-db pg_dump -U "$DB_USERNAME_VALUE" "$DB_DATABASE_VALUE" > "$DATABASE_BACKUP"; then
+        rm -f "$DATABASE_BACKUP"
+        echo "Database backup failed. Upgrade aborted before changing source or containers."
+        exit 1
+    fi
     cp "$ENV_FILE" "/data/coolify/backups/oneploy/env-${DATE}"
 fi
 
 log "Updating source"
+PREVIOUS_COMMIT="$(git -C "${ONEPLOY_DIR}" rev-parse HEAD)"
 git -C "${ONEPLOY_DIR}" fetch --depth 1 origin "${ONEPLOY_BRANCH}"
 git -C "${ONEPLOY_DIR}" checkout "${ONEPLOY_BRANCH}"
 git -C "${ONEPLOY_DIR}" reset --hard "origin/${ONEPLOY_BRANCH}"
 
 cp -f "${ONEPLOY_DIR}/docker-compose.yml" "${SOURCE_DIR}/docker-compose.yml"
 cp -f "${ONEPLOY_DIR}/docker-compose.oneploy.yml" "${SOURCE_DIR}/docker-compose.oneploy.yml"
+cp -f "${ONEPLOY_DIR}/scripts/oneploy-upgrade.sh" "${SOURCE_DIR}/oneploy-upgrade.sh"
+chmod +x "${SOURCE_DIR}/oneploy-upgrade.sh"
 
 log "Rebuilding images"
 cd "${ONEPLOY_DIR}"
@@ -47,6 +58,7 @@ docker tag oneploy/helper:1.0.16 oneploy/helper:latest
 
 log "Restarting stack"
 cd "${SOURCE_DIR}"
+docker compose --env-file "$ENV_FILE" -f docker-compose.yml -f docker-compose.oneploy.yml config --quiet
 docker compose --env-file "$ENV_FILE" -f docker-compose.yml -f docker-compose.oneploy.yml up -d --remove-orphans
 
 for i in $(seq 1 60); do
@@ -55,5 +67,12 @@ for i in $(seq 1 60); do
     sleep 2
 done
 
-docker exec coolify php artisan oneploy:bootstrap || true
-log "Upgrade complete. Health=${HEALTH:-unknown}"
+if [ "${HEALTH:-unknown}" != "healthy" ]; then
+    echo "Upgrade health check failed. Previous source commit: ${PREVIOUS_COMMIT}"
+    echo "Inspect: docker logs --tail 120 coolify"
+    docker logs --tail 120 coolify || true
+    exit 1
+fi
+
+docker exec coolify php artisan oneploy:bootstrap
+log "Upgrade complete. Health=healthy commit=$(git -C "${ONEPLOY_DIR}" rev-parse --short HEAD)"
