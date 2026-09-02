@@ -28,6 +28,11 @@ class PullTemplatesFromCDN implements ShouldBeEncrypted, ShouldQueue
             if (isDev()) {
                 return;
             }
+            if (oneploy_uses_local_templates() || config('oneploy.own_releases')) {
+                load_local_oneploy_templates();
+
+                return;
+            }
             $response = Http::retry(3, 1000, throw: false)
                 ->timeout(60)
                 ->connectTimeout(10)

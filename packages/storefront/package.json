@@ -1,0 +1,8 @@
+{
+  "name": "@oneploy/storefront",
+  "version": "0.1.0",
+  "description": "Typed OnePloy storefront client. Public catalog only — no admin secrets.",
+  "type": "module",
+  "main": "src/index.js",
+  "license": "Apache-2.0"
+}

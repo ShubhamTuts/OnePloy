@@ -6,6 +6,10 @@ use App\Http\Controllers\ProfileAvatarController;
 use App\Http\Controllers\ProjectIconController;
 use App\Http\Controllers\UploadController;
 use App\Livewire\Admin\Index as AdminIndex;
+use App\Livewire\OnePloy\Billing as OnePloyBilling;
+use App\Livewire\OnePloy\Domains as OnePloyDomains;
+use App\Livewire\OnePloy\Marketplace as OnePloyMarketplace;
+use App\Livewire\OnePloy\Usage as OnePloyUsage;
 use App\Livewire\Boarding\Index as BoardingIndex;
 use App\Livewire\Dashboard;
 use App\Livewire\Destination\Index as DestinationIndex;
@@ -155,6 +159,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::get('/', Dashboard::class)->name('dashboard');
+    Route::get('/marketplace', OnePloyMarketplace::class)->name('oneploy.marketplace');
+    Route::get('/domains', OnePloyDomains::class)->name('oneploy.domains');
+    Route::get('/usage', OnePloyUsage::class)->name('oneploy.usage');
+    Route::get('/billing', OnePloyBilling::class)->name('oneploy.billing');
     Route::get('/admin', AdminIndex::class)->name('admin.index');
     Route::get('/onboarding', BoardingIndex::class)->name('onboarding');
 

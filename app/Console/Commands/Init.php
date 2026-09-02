@@ -160,12 +160,20 @@ class Init extends Command
 
     private function pullTemplatesFromCDN()
     {
+        if (oneploy_uses_local_templates() || config('oneploy.own_releases')) {
+            load_local_oneploy_templates();
+
+            return;
+        }
+
         $response = Http::retry(3, 1000, throw: false)
             ->timeout(60)
             ->connectTimeout(10)
             ->get(config('constants.services.official'));
         if ($response->successful()) {
             store_service_templates_bundle($response->body());
+        } else {
+            load_local_oneploy_templates();
         }
     }
 

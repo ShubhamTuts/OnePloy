@@ -167,6 +167,40 @@
                     <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Keys & Tokens</span>
                 </a>
             </li>
+            @if (config('oneploy.platform') && auth()->user()?->isAdmin())
+                <li>
+                    <a title="Marketplace" {{ wireNavigate() }}
+                        class="{{ request()->is('marketplace*') ? 'menu-item-active menu-item' : 'menu-item' }}"
+                        :class="collapsed && 'lg:justify-center lg:px-0'" href="{{ route('oneploy.marketplace') }}">
+                        <x-reicon name="projects" class="menu-item-icon" />
+                        <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Marketplace</span>
+                    </a>
+                </li>
+                <li>
+                    <a title="Domains" {{ wireNavigate() }}
+                        class="{{ request()->is('domains*') ? 'menu-item-active menu-item' : 'menu-item' }}"
+                        :class="collapsed && 'lg:justify-center lg:px-0'" href="{{ route('oneploy.domains') }}">
+                        <x-reicon name="destinations" class="menu-item-icon" />
+                        <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Domains</span>
+                    </a>
+                </li>
+                <li>
+                    <a title="Usage" {{ wireNavigate() }}
+                        class="{{ request()->is('usage*') ? 'menu-item-active menu-item' : 'menu-item' }}"
+                        :class="collapsed && 'lg:justify-center lg:px-0'" href="{{ route('oneploy.usage') }}">
+                        <x-reicon name="dashboard" class="menu-item-icon" />
+                        <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Usage</span>
+                    </a>
+                </li>
+                <li>
+                    <a title="Billing" {{ wireNavigate() }}
+                        class="{{ request()->is('billing*') || request()->is('subscription*') ? 'menu-item-active menu-item' : 'menu-item' }}"
+                        :class="collapsed && 'lg:justify-center lg:px-0'" href="{{ route('oneploy.billing') }}">
+                        <x-reicon name="subscription" class="menu-item-icon" />
+                        <span class="menu-item-label" :class="collapsed && 'lg:hidden'">Billing</span>
+                    </a>
+                </li>
+            @endif
             @if (isCloud() && auth()->user()->isAdmin())
                 <li>
                     <a title="Subscription" {{ wireNavigate() }}
@@ -197,7 +231,7 @@
             @endif
             <li class="flex-1" aria-hidden="true"></li>
         @endif
-        @if (auth()->id() === 0 && (isCloud() || isDev()))
+        @if (auth()->user()?->isSuperAdmin() || session('impersonating'))
             <li>
                 <a title="Admin" {{ wireNavigate() }}
                     class="{{ request()->is('admin') ? 'menu-item-active menu-item' : 'menu-item' }}"

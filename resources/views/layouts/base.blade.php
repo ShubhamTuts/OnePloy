@@ -63,7 +63,7 @@
         }
     @endphp
     <title>{{ $name }}{{ $title ?? config('app.name', 'OnePloy') }}</title>
-    <link rel="icon" href="{{ asset('oneploy-logo.png') }}" type="image/png" />
+    <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @vite(['resources/js/app.js', 'resources/css/app.css'])
     <script>

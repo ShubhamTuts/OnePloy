@@ -57,6 +57,10 @@ class ProductionSeeder extends Seeder
         if (InstanceSettings::find(0) == null) {
             InstanceSettings::create([
                 'id' => 0,
+                'instance_name' => 'OnePloy',
+                'is_sponsorship_popup_enabled' => false,
+                'is_auto_update_enabled' => false,
+                'do_not_track' => true,
             ]);
         }
 
@@ -96,14 +100,13 @@ class ProductionSeeder extends Seeder
                         'id' => 0,
                         'team_id' => 0,
                         'name' => 'localhost\'s key',
-                        'description' => 'The private key for the Coolify host machine (localhost).',
+                        'description' => 'The private key for the OnePloy host machine (localhost).',
                         'private_key' => $coolify_key,
                     ]);
-                    echo "SSH key found for the Coolify host machine (localhost).\n";
+                    echo "SSH key found for the OnePloy host machine (localhost).\n";
                 } else {
-                    echo "No SSH key found for the Coolify host machine (localhost).\n";
-                    echo "Please read the following documentation (point 3) to fix it: https://coolify.
-                io/docs/knowledge-base/server/openssh/\n";
+                    echo "No SSH key found for the OnePloy host machine (localhost).\n";
+                    echo "Please read the OnePloy install documentation to restore localhost SSH access.\n";
                     echo "Your localhost connection won't work until then.";
                 }
             }
@@ -114,7 +117,7 @@ class ProductionSeeder extends Seeder
                 $server_details = [
                     'id' => 0,
                     'name' => 'localhost',
-                    'description' => "This is the server where Coolify is running on. Don't delete this!",
+                    'description' => "This is the server where OnePloy is running. Do not delete it.",
                     'user' => $user,
                     'ip' => 'host.docker.internal',
                     'team_id' => 0,
@@ -180,7 +183,7 @@ uZx9iFkCELtxrh31QJ68AAAAEXNhaWxANzZmZjY2ZDJlMmRkAQIDBA==
                     'id' => 0,
                     'uuid' => 'coolify-testing-host',
                     'name' => 'localhost',
-                    'description' => "This is the server where Coolify is running on. Don't delete this!",
+                    'description' => "This is the server where OnePloy is running. Do not delete it.",
                     'user' => 'root',
                     'ip' => 'coolify-testing-host',
                     'team_id' => 0,

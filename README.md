@@ -6,6 +6,16 @@
 Self-hosted, multi-tenant server and application management for VPS, cloud, and on-premises infrastructure.
 </div>
 
+## Installation (Ubuntu VPS)
+
+Point `app.oneploy.dev` (or your hostname) at the VPS, then:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ShubhamTuts/OnePloy/main/scripts/oneploy-install.sh | sudo bash -s -- --fqdn app.oneploy.dev --email admin@oneploy.dev
+```
+
+This builds OnePloy from source on the server (not CoolLabs images) and enables HTTPS through the inherited Traefik proxy once DNS is live. Full notes: [docs/oneploy/INSTALL.md](docs/oneploy/INSTALL.md).
+
 ## Current foundation
 
 OnePloy is being developed as a modular Laravel control plane on top of the mature Coolify codebase. The current repository includes:
@@ -37,7 +47,7 @@ php artisan test tests/Feature/OnePloyTenancyTest.php tests/Feature/CreateTenant
 
 ## Installation status
 
-The inherited `scripts/install.sh` currently installs upstream Coolify release images. It is retained for compatibility and reference, but it is not yet a verified OnePloy release installer. The in-app updater is disabled. Do not advertise either path as OnePloy production installation or updates until the fork owns its image pipeline, signed release artifacts, upgrade channel, rollback tests, and fresh-Ubuntu acceptance test.
+Use `scripts/oneploy-install.sh` for production. The inherited `scripts/install.sh` still talks to CoolLabs and must not be used for OnePloy.
 
 ## Security
 

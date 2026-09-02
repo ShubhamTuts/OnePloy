@@ -72,7 +72,9 @@ class Kernel extends ConsoleKernel
             $this->scheduleInstance->command('horizon:snapshot')->everyFiveMinutes();
             $this->scheduleInstance->command('cleanup:unreachable-servers')->daily()->onOneServer();
 
-            $this->scheduleInstance->job(new PullTemplatesFromCDN)->cron($this->updateCheckFrequency)->timezone($this->instanceTimezone)->onOneServer();
+            if (! config('oneploy.own_releases')) {
+                $this->scheduleInstance->job(new PullTemplatesFromCDN)->cron($this->updateCheckFrequency)->timezone($this->instanceTimezone)->onOneServer();
+            }
             $this->scheduleInstance->job(new PullChangelog)->cron($this->updateCheckFrequency)->timezone($this->instanceTimezone)->onOneServer();
 
             $this->scheduleInstance->job(new CleanupInstanceStuffsJob)->everyTwoMinutes()->onOneServer();
@@ -100,6 +102,10 @@ class Kernel extends ConsoleKernel
 
     private function pullImages(): void
     {
+        if (config('oneploy.own_releases')) {
+            return;
+        }
+
         $this->scheduleInstance->job(new CheckHelperImageJob)
             ->cron($this->updateCheckFrequency)
             ->timezone($this->instanceTimezone)

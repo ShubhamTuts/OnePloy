@@ -20,7 +20,7 @@ class Index extends Component
 
     public function mount()
     {
-        if (! isCloud() && ! isDev()) {
+        if (! auth()->user()?->isSuperAdmin() && ! session('impersonating')) {
             abort(403);
         }
         $this->authorizeAdminAccess();
@@ -54,7 +54,7 @@ class Index extends Component
 
     public function getSubscribers()
     {
-        if (Auth::id() !== 0 && ! session('impersonating')) {
+        if (! Auth::user()?->isSuperAdmin() && ! session('impersonating')) {
             return redirect()->route('dashboard');
         }
         $this->inactiveSubscribers = Team::whereRelation('subscription', 'stripe_invoice_paid', false)->count();
@@ -78,7 +78,7 @@ class Index extends Component
 
     private function authorizeAdminAccess(): void
     {
-        if (! Auth::check() || (Auth::id() !== 0 && ! session('impersonating'))) {
+        if (! Auth::check() || (! Auth::user()->isSuperAdmin() && ! session('impersonating'))) {
             abort(403);
         }
     }

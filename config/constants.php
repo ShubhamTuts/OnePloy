@@ -10,8 +10,8 @@ return [
         'autoupdate' => env('AUTOUPDATE'),
         'base_config_path' => env('BASE_CONFIG_PATH', '/data/coolify'),
         'registry_url' => env('REGISTRY_URL', 'docker.io'),
-        'helper_image' => env('HELPER_IMAGE', env('REGISTRY_URL', 'docker.io').'/coollabsio/coolify-helper'),
-        'realtime_image' => env('REALTIME_IMAGE', env('REGISTRY_URL', 'docker.io').'/coollabsio/coolify-realtime'),
+        'helper_image' => env('HELPER_IMAGE', env('ONEPLOY_OWN_RELEASES', true) ? 'oneploy/helper' : env('REGISTRY_URL', 'docker.io').'/coollabsio/coolify-helper'),
+        'realtime_image' => env('REALTIME_IMAGE', env('ONEPLOY_OWN_RELEASES', true) ? 'oneploy/realtime' : env('REGISTRY_URL', 'docker.io').'/coollabsio/coolify-realtime'),
         'is_windows_docker_desktop' => env('IS_WINDOWS_DOCKER_DESKTOP', false),
         'cdn_url' => env('CDN_URL', 'https://cdn.coollabs.io'),
         'avatar_cdn_url' => env('AVATAR_CDN_URL'),
@@ -21,12 +21,12 @@ return [
     ],
 
     'urls' => [
-        'docs' => 'https://github.com/ShubhamTuts/OnePloy#readme',
-        'contact' => 'https://github.com/ShubhamTuts/OnePloy/issues',
+        'docs' => env('ONEPLOY_DOCS_URL', 'https://github.com/ShubhamTuts/OnePloy#readme'),
+        'contact' => env('ONEPLOY_SUPPORT_URL', 'https://github.com/ShubhamTuts/OnePloy/issues'),
     ],
 
     'services' => [
-        'official' => 'https://cdn.coollabs.io/coolify/service-templates-latest.json',
+        'official' => env('ONEPLOY_TEMPLATES_URL', 'local'),
         'file_name' => 'service-templates-latest.json',
         // Shared across HTTP/Horizon nodes when CACHE_DRIVER is redis (default).
         'cache_key' => 'coolify:service-templates-bundle',

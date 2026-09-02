@@ -37,7 +37,7 @@
                         if (checkNumber > 5) {
                             this.popups.realtime = true;
                             console.error(
-                                'OnePloy could not connect to its real-time service. This will cause unusual problems on the UI if not fixed! Please check the related documentation (https://coolify.io/docs/knowledge-base/cloudflare/tunnels/overview) or get help on Discord (https://coollabs.io/discord).)'
+                                'OnePloy could not connect to its real-time service. Check docker logs for coolify-realtime.'
                             );
                         }
 
@@ -112,11 +112,11 @@
                                     <p class="mt-1 text-[12px] leading-5 text-neutral-500 dark:text-fg-dim">
                                         This will cause unusual problems on the UI. Open the
                                         <a class="font-medium text-coollabs underline decoration-coollabs/30 underline-offset-2 transition-colors hover:text-coollabs-100 dark:text-warning dark:decoration-warning/30 dark:hover:text-warning/90"
-                                            href="https://coolify.io/docs/knowledge-base/server/firewall"
+                                            href="https://github.com/ShubhamTuts/OnePloy#readme"
                                             target="_blank" rel="noopener noreferrer">required ports</a>
                                         or get help on
                                         <a class="font-medium text-coollabs underline decoration-coollabs/30 underline-offset-2 transition-colors hover:text-coollabs-100 dark:text-warning dark:decoration-warning/30 dark:hover:text-warning/90"
-                                            href="https://coollabs.io/discord" target="_blank"
+                                            href="https://github.com/ShubhamTuts/OnePloy/issues" target="_blank"
                                             rel="noopener noreferrer">Discord</a>.
                                     </p>
                                 </div>
@@ -124,7 +124,7 @@
 
                             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
                                 <a target="_blank" rel="noopener noreferrer"
-                                    href="https://coolify.io/docs/knowledge-base/server/firewall"
+                                    href="https://github.com/ShubhamTuts/OnePloy#readme"
                                     class="button h-9 justify-center sm:min-w-28">
                                     View docs
                                 </a>
@@ -140,7 +140,7 @@
             @endif
         </span>
     @endauth
-    @if ((isDev() || instanceSettings()->is_sponsorship_popup_enabled) && ! isCloud())
+    @if (false && (isDev() || instanceSettings()->is_sponsorship_popup_enabled) && ! isCloud())
         <span x-show="popups.sponsorship">
             <x-popup>
                 <x-slot:customActions>

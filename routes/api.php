@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ApplicationsController;
+use App\Http\Controllers\Api\StorefrontController;
 use App\Http\Controllers\Api\CloudInitScriptsController;
 use App\Http\Controllers\Api\CloudProviderTokensController;
 use App\Http\Controllers\Api\DatabasesController;
@@ -42,6 +43,15 @@ Route::group([
     'prefix' => 'v1',
 ], function () {
     Route::get('/health', [OtherController::class, 'healthcheck']);
+});
+
+Route::prefix('storefront/v1')->middleware('throttle:60,1')->group(function () {
+    Route::get('/catalogue', [StorefrontController::class, 'catalogue']);
+    Route::get('/applications', [StorefrontController::class, 'applications']);
+    Route::get('/domains/search', [StorefrontController::class, 'domainSearch']);
+    Route::get('/status', [StorefrontController::class, 'status']);
+    Route::get('/checkout/{uuid}', [StorefrontController::class, 'checkoutStatus']);
+    Route::post('/checkout', [StorefrontController::class, 'checkout'])->middleware(['auth:sanctum']);
 });
 
 Route::post('/feedback', [OtherController::class, 'feedback'])

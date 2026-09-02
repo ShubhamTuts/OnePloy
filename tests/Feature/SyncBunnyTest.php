@@ -20,9 +20,9 @@ it('only exposes the BunnyCDN legacy sync option', function () {
         ->and($definition->hasOption('templates'))->toBeFalse();
 });
 
-it('loads service templates from the Coollabs CDN', function () {
+it('loads service templates from the OnePloy local catalogue by default', function () {
     expect(config('constants.services.official'))
-        ->toBe('https://cdn.coollabs.io/coolify/service-templates-latest.json');
+        ->toBe('local');
 });
 
 it('only removes validated Coolify CDN temporary directories', function () {

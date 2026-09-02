@@ -1,6 +1,14 @@
 @extends('layouts.base')
 @section('body')
     @parent
+    @auth
+        @if (session('impersonating'))
+            <div class="fixed inset-x-0 top-0 z-[1100] flex items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-sm font-semibold text-black">
+                <span>Impersonation active. Actions are audited. Do not perform financial operations unless required.</span>
+                <a href="{{ route('admin.index') }}" class="underline">Exit</a>
+            </div>
+        @endif
+    @endauth
     @if (isSubscribed() || !isCloud())
         <livewire:layout-popups />
     @endif
@@ -40,7 +48,7 @@
                         <a href="/" {{ wireNavigate() }} title="OnePloy"
                             class="flex items-center hover:opacity-80 transition-opacity">
                             <img x-show="collapsed" x-cloak src="/oneploy-logo.png" alt="OnePloy"
-                                class="size-5" />
+                                class="size-7 rounded-full" />
                             <span x-show="!collapsed" class="text-[15px] font-semibold tracking-tight text-black dark:text-white">OnePloy</span>
                         </a>
                         <x-version x-show="!collapsed"

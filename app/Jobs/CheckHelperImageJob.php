@@ -21,6 +21,9 @@ class CheckHelperImageJob implements ShouldBeEncrypted, ShouldQueue
     public function handle(): void
     {
         try {
+            if (config('oneploy.own_releases')) {
+                return;
+            }
             $response = Http::retry(3, 1000)->get(config('constants.coolify.versions_url'));
             if ($response->successful()) {
                 $versions = $response->json();

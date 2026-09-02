@@ -1376,6 +1376,34 @@ function service_templates_path(): string
     return base_path('templates/'.config('constants.services.file_name'));
 }
 
+function oneploy_uses_local_templates(): bool
+{
+    $url = (string) config('constants.services.official');
+
+    return $url === '' || $url === 'local' || ! str_starts_with($url, 'http');
+}
+
+function load_local_oneploy_templates(): bool
+{
+    $candidates = [
+        base_path('templates/service-templates.json'),
+        base_path('templates/service-templates-latest.json'),
+        service_templates_path(),
+    ];
+
+    foreach ($candidates as $path) {
+        if (! File::exists($path)) {
+            continue;
+        }
+        $json = File::get($path);
+        if (filled($json)) {
+            return store_service_templates_bundle($json);
+        }
+    }
+
+    return false;
+}
+
 /**
  * Persist the CDN service-templates bundle to local disk and shared cache.
  *
@@ -1422,13 +1450,20 @@ function get_service_templates_fetched_at(): ?CarbonImmutable
 function get_service_templates(bool $force = false): Collection
 {
     if ($force) {
+        if (oneploy_uses_local_templates()) {
+            load_local_oneploy_templates();
+
+            return get_service_templates(false);
+        }
         try {
             $response = Http::retry(3, 1000, throw: false)
                 ->timeout(60)
                 ->connectTimeout(10)
                 ->get(config('constants.services.official'));
             if ($response->failed()) {
-                return collect([]);
+                load_local_oneploy_templates();
+
+                return get_service_templates(false);
             }
             store_service_templates_bundle($response->body());
 
