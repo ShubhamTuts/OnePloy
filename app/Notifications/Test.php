@@ -60,7 +60,7 @@ class Test extends Notification implements ShouldQueue
     public function toMail(): MailMessage
     {
         $mail = new MailMessage;
-        $mail->subject('Coolify: Test Email');
+        $mail->subject('OnePloy: Test Email');
         $mail->view('emails.test');
 
         return $mail;
@@ -70,7 +70,7 @@ class Test extends Notification implements ShouldQueue
     {
         $message = new DiscordMessage(
             title: ':white_check_mark: Test Success',
-            description: 'This is a test Discord notification from Coolify. :cross_mark: :warning: :information_source:',
+            description: 'This is a test Discord notification from OnePloy. :cross_mark: :warning: :information_source:',
             color: DiscordMessage::successColor(),
             isCritical: $this->ping,
         );
@@ -83,7 +83,7 @@ class Test extends Notification implements ShouldQueue
     public function toTelegram(): array
     {
         return [
-            'message' => 'Coolify: This is a test Telegram notification from Coolify.',
+            'message' => 'OnePloy: This is a test Telegram notification from OnePloy.',
             'buttons' => [
                 [
                     'text' => 'Go to your dashboard',
@@ -97,7 +97,7 @@ class Test extends Notification implements ShouldQueue
     {
         return new PushoverMessage(
             title: 'Test Pushover Notification',
-            message: 'This is a test Pushover notification from Coolify.',
+            message: 'This is a test Pushover notification from OnePloy.',
             buttons: [
                 [
                     'text' => 'Go to your dashboard',
@@ -111,7 +111,7 @@ class Test extends Notification implements ShouldQueue
     {
         return new SlackMessage(
             title: 'Test Slack Notification',
-            description: 'This is a test Slack notification from Coolify.'
+            description: 'This is a test Slack notification from OnePloy.'
         );
     }
 
@@ -119,7 +119,7 @@ class Test extends Notification implements ShouldQueue
     {
         return [
             'success' => true,
-            'message' => 'This is a test webhook notification from Coolify.',
+            'message' => 'This is a test webhook notification from OnePloy.',
             'event' => 'test',
             'url' => base_url(),
         ];

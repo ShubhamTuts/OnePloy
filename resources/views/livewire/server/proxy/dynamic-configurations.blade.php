@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Proxy Dynamic Configuration | Coolify
+        Proxy Dynamic Configuration | OnePloy
     </x-slot>
 
     <livewire:server.navbar :server="$server" />

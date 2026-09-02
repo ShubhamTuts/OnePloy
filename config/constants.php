@@ -21,8 +21,8 @@ return [
     ],
 
     'urls' => [
-        'docs' => 'https://coolify.io/docs',
-        'contact' => 'https://coolify.io/docs/contact',
+        'docs' => 'https://github.com/ShubhamTuts/OnePloy#readme',
+        'contact' => 'https://github.com/ShubhamTuts/OnePloy/issues',
     ],
 
     'services' => [

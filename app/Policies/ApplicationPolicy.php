@@ -101,9 +101,9 @@ class ApplicationPolicy
      */
     public function deploy(User $user, Application $application): bool
     {
-        $teamId = $this->getTeamId($application);
+        $team = $application->team();
 
-        return $teamId !== null && $user->isDeployerOfTeam($teamId);
+        return $team?->isTenantActive() === true && $user->isDeployerOfTeam($team->id);
     }
 
     /**

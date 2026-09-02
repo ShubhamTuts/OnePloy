@@ -43,7 +43,7 @@ class DestinationsController extends Controller
     /**
      * StandaloneDocker / SwarmDocker scoped to a team via their parent server.
      * Uses whereHas instead of the model's ownedByCurrentTeamAPI() scope so the
-     * controller works on Coolify versions that pre-date that scope being added
+     * controller works on OnePloy versions that pre-date that scope being added
      * to the destination models (e.g. 4.0.0-beta.470).
      */
     private function teamScopedDockers(int $teamId): array
@@ -390,7 +390,7 @@ class DestinationsController extends Controller
 
         // Guard against deleting destinations with attached resources. attachedTo()
         // is recent on the destination models; fall back to a manual check for
-        // older Coolify versions (e.g. 4.0.0-beta.470).
+        // older OnePloy versions (e.g. 4.0.0-beta.470).
         if (method_exists($destination, 'attachedTo')) {
             if ($destination->attachedTo()) {
                 return response()->json(['message' => 'Destination has attached resources, detach first.'], 409);

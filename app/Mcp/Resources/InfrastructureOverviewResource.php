@@ -15,7 +15,7 @@ class InfrastructureOverviewResource extends Resource
 
     protected string $name = 'coolify-overview';
 
-    protected string $description = 'Team infrastructure overview JSON for the authenticated Coolify token.';
+    protected string $description = 'Team infrastructure overview JSON for the authenticated OnePloy token.';
 
     protected string $uri = 'coolify://overview';
 

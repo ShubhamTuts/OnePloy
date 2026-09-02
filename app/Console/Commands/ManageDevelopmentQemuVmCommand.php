@@ -11,7 +11,7 @@ class ManageDevelopmentQemuVmCommand extends Command
 {
     protected $signature = 'dev:qemu {profiles?* : Profile keys from config/development-qemu.php}';
 
-    protected $description = 'Recreate selected development QEMU VMs and seed their Coolify servers';
+    protected $description = 'Recreate selected development QEMU VMs and seed their OnePloy servers';
 
     public function handle(): int
     {

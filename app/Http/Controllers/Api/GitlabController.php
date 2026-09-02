@@ -227,7 +227,7 @@ class GitlabController extends Controller
             'client_id' => 'nullable|string|max:255',
             'client_secret' => 'nullable|string',
             'webhook_token' => 'nullable|string',
-            // Callback to this Coolify instance — may be a private/LAN URL; do not use SafeExternalUrl.
+            // Callback to this OnePloy instance — may be a private/LAN URL; do not use SafeExternalUrl.
             'redirect_uri' => ['nullable', 'string', 'url'],
             'is_system_wide' => 'boolean',
         ]);
@@ -405,7 +405,7 @@ class GitlabController extends Controller
                 $rules['webhook_token'] = 'nullable|string';
             }
             if (array_key_exists('redirect_uri', $payload)) {
-                // Callback to this Coolify instance — may be a private/LAN URL.
+                // Callback to this OnePloy instance — may be a private/LAN URL.
                 $rules['redirect_uri'] = 'nullable|url';
             }
             if (! isCloud() && isset($payload['is_system_wide'])) {

@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Environment Variables | Coolify
+        Environment Variables | OnePloy
     </x-slot>
 
     <x-shared-variables.editor :resource="$environment"

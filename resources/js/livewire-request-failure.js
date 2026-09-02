@@ -37,7 +37,7 @@ export function createLivewireRequestFailureHandler({ now = Date.now } = {}) {
             lastToastGestureAt = gestureAt;
             window.toast?.('Action could not be completed', {
                 type: 'danger',
-                description: 'Coolify did not receive a response. Please try again.',
+                description: 'OnePloy did not receive a response. Please try again.',
             });
         }
     };

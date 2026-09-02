@@ -102,7 +102,7 @@ class SendMessageToSlackJob implements ShouldBeEncrypted, ShouldQueue
                     'type' => 'section',
                     'text' => [
                         'type' => 'plain_text',
-                        'text' => 'Coolify Notification',
+                        'text' => 'OnePloy Notification',
                     ],
                 ],
             ],

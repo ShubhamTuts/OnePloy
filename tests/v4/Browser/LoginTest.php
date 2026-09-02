@@ -49,7 +49,7 @@ it('can login with valid credentials', function () {
         ->fill('password', 'password')
         ->screenshot(filename: 'login-valid-filled')
         ->click('Login')
-        ->assertSee('Welcome to Coolify')
+        ->assertSee('Welcome to OnePloy')
         ->assertSee('Connect your first server and start deploying in minutes.')
         ->assertSee('Continue')
         ->assertSee('Skip setup')

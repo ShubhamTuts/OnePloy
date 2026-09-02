@@ -88,7 +88,7 @@ class Init extends Command
             $this->call('cleanup:stucked-resources');
         } catch (\Throwable $e) {
             echo "Error in cleanup:stucked-resources command: {$e->getMessage()}\n";
-            echo "Continuing with initialization - cleanup errors will not prevent Coolify from starting\n";
+            echo "Continuing with initialization - cleanup errors will not prevent OnePloy from starting\n";
         }
         try {
             $updatedCount = ApplicationDeploymentQueue::whereIn('status', [
@@ -108,7 +108,7 @@ class Init extends Command
         try {
             $updatedTaskCount = ScheduledTaskExecution::where('status', 'running')->update([
                 'status' => 'failed',
-                'message' => 'Marked as failed during Coolify startup - job was interrupted',
+                'message' => 'Marked as failed during OnePloy startup - job was interrupted',
                 'finished_at' => Carbon::now(),
             ]);
 
@@ -122,7 +122,7 @@ class Init extends Command
         try {
             $updatedBackupCount = ScheduledDatabaseBackupExecution::where('status', 'running')->update([
                 'status' => 'failed',
-                'message' => 'Marked as failed during Coolify startup - job was interrupted',
+                'message' => 'Marked as failed during OnePloy startup - job was interrupted',
                 'finished_at' => Carbon::now(),
             ]);
 
@@ -267,6 +267,10 @@ class Init extends Command
 
     private function sendAliveSignal()
     {
+        if (! config('oneploy.upstream_telemetry_enabled')) {
+            return;
+        }
+
         $id = config('app.id');
         $version = config('constants.coolify.version');
         try {

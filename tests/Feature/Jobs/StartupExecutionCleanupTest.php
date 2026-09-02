@@ -65,12 +65,12 @@ test('app:init marks stuck scheduled task executions as failed', function () {
 
     // Assert running executions are now failed
     expect($runningExecution1->status)->toBe('failed')
-        ->and($runningExecution1->message)->toBe('Marked as failed during Coolify startup - job was interrupted')
+        ->and($runningExecution1->message)->toBe('Marked as failed during OnePloy startup - job was interrupted')
         ->and($runningExecution1->finished_at)->not->toBeNull()
         ->and($runningExecution1->finished_at->toDateTimeString())->toBe('2025-01-15 12:00:00');
 
     expect($runningExecution2->status)->toBe('failed')
-        ->and($runningExecution2->message)->toBe('Marked as failed during Coolify startup - job was interrupted')
+        ->and($runningExecution2->message)->toBe('Marked as failed during OnePloy startup - job was interrupted')
         ->and($runningExecution2->finished_at)->not->toBeNull();
 
     // Assert completed execution is unchanged
@@ -128,12 +128,12 @@ test('app:init marks stuck database backup executions as failed', function () {
 
     // Assert running backups are now failed
     expect($runningBackup1->status)->toBe('failed')
-        ->and($runningBackup1->message)->toBe('Marked as failed during Coolify startup - job was interrupted')
+        ->and($runningBackup1->message)->toBe('Marked as failed during OnePloy startup - job was interrupted')
         ->and($runningBackup1->finished_at)->not->toBeNull()
         ->and($runningBackup1->finished_at->toDateTimeString())->toBe('2025-01-15 12:00:00');
 
     expect($runningBackup2->status)->toBe('failed')
-        ->and($runningBackup2->message)->toBe('Marked as failed during Coolify startup - job was interrupted')
+        ->and($runningBackup2->message)->toBe('Marked as failed during OnePloy startup - job was interrupted')
         ->and($runningBackup2->finished_at)->not->toBeNull();
 
     // Assert successful backup is unchanged

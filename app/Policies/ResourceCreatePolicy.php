@@ -39,7 +39,11 @@ class ResourceCreatePolicy
      */
     public function createAny(User $user): bool
     {
-        return $user->isAdmin();
+        if (! $user->isAdmin()) {
+            return false;
+        }
+
+        return $user->currentTeam()?->isTenantActive() === true;
     }
 
     /**
@@ -51,7 +55,7 @@ class ResourceCreatePolicy
             return false;
         }
 
-        return $user->isAdmin();
+        return $this->createAny($user);
     }
 
     /**

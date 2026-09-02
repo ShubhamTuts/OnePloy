@@ -1978,7 +1978,7 @@ class ServicesController extends Controller
 
     #[OA\Post(
         summary: 'Migrate to Server',
-        description: 'Migrate a service to another destination/server owned by the authenticated team. Stops the service, optionally transfers persistent volume data when both servers are managed by Coolify, and updates database records. Redeploy after migration completes.',
+        description: 'Migrate a service to another destination/server owned by the authenticated team. Stops the service, optionally transfers persistent volume data when both servers are managed by OnePloy, and updates database records. Redeploy after migration completes.',
         path: '/services/{uuid}/migrate',
         operationId: 'migrate-service-by-uuid',
         security: [['bearerAuth' => []]],

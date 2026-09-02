@@ -32,7 +32,7 @@ test('subscription pricing page shows pay as you go plan for unsubscribed team a
         ->assertSuccessful()
         ->assertSee('Pay as you go')
         ->assertSee('Subscribe monthly')
-        ->assertSee('Choose a plan for Coolify Cloud');
+        ->assertSee('Choose a plan for OnePloy Cloud');
 });
 
 test('subscription pricing page still renders when provider config is missing', function () {

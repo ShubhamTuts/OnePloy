@@ -50,7 +50,6 @@ class Team extends Model implements SendsDiscord, SendsEmail, SendsPushover, Sen
         'show_boarding',
         'custom_server_limit',
         'is_mcp_server_enabled',
-        'reseller_id',
     ];
 
     protected $attributes = [

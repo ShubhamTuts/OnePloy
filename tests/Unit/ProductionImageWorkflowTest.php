@@ -1,7 +1,7 @@
 <?php
 
 it('publishes v4 branch builds under the commit sha with a traceable internal version', function () {
-    $workflow = file_get_contents(dirname(__DIR__, 2).'/.github/workflows/coolify-sha-build.yml');
+    $workflow = file_get_contents(dirname(__DIR__, 2).'/docs/upstream-workflows/coolify-sha-build.yml');
     $dockerfile = file_get_contents(dirname(__DIR__, 2).'/docker/production/Dockerfile');
     $constants = file_get_contents(dirname(__DIR__, 2).'/config/constants.php');
     $versions = json_decode(file_get_contents(dirname(__DIR__, 2).'/versions.json'), true, flags: JSON_THROW_ON_ERROR);
@@ -41,7 +41,7 @@ it('orders rolling and exact release candidates before the stable release', func
 });
 
 it('requires a reviewed draft release before building a stable version', function () {
-    $workflow = file_get_contents(dirname(__DIR__, 2).'/.github/workflows/coolify-release.yml');
+    $workflow = file_get_contents(dirname(__DIR__, 2).'/docs/upstream-workflows/coolify-release.yml');
 
     expect($workflow)
         ->toContain('name: Release Coolify Stable')
@@ -63,7 +63,7 @@ it('requires a reviewed draft release before building a stable version', functio
 });
 
 it('runs support image workflows from main', function (string $workflowFile) {
-    $workflow = file_get_contents(dirname(__DIR__, 2)."/.github/workflows/{$workflowFile}");
+    $workflow = file_get_contents(dirname(__DIR__, 2)."/docs/upstream-workflows/{$workflowFile}");
 
     expect($workflow)
         ->toContain('branches: [ "main" ]')
@@ -74,7 +74,7 @@ it('runs support image workflows from main', function (string $workflowFile) {
 ]);
 
 it('prevents the stable helper workflow from publishing an existing version', function () {
-    $workflow = file_get_contents(dirname(__DIR__, 2).'/.github/workflows/coolify-helper.yml');
+    $workflow = file_get_contents(dirname(__DIR__, 2).'/docs/upstream-workflows/coolify-helper.yml');
 
     expect($workflow)
         ->toContain('workflow_dispatch:')
@@ -89,7 +89,7 @@ it('prevents the stable helper workflow from publishing an existing version', fu
 });
 
 it('prevents the stable realtime workflow from publishing an existing version', function () {
-    $workflow = file_get_contents(dirname(__DIR__, 2).'/.github/workflows/coolify-realtime.yml');
+    $workflow = file_get_contents(dirname(__DIR__, 2).'/docs/upstream-workflows/coolify-realtime.yml');
 
     expect($workflow)
         ->toContain('check-version:')
@@ -104,7 +104,7 @@ it('prevents the stable realtime workflow from publishing an existing version', 
 });
 
 it('generates the production changelog from main', function () {
-    $workflow = file_get_contents(dirname(__DIR__, 2).'/.github/workflows/generate-changelog.yml');
+    $workflow = file_get_contents(dirname(__DIR__, 2).'/docs/upstream-workflows/generate-changelog.yml');
 
     expect($workflow)
         ->toContain('branches: [ main ]')
@@ -112,7 +112,7 @@ it('generates the production changelog from main', function () {
 });
 
 it('publishes traceable rolling builds from next without creating an exact rc tag', function () {
-    $workflow = file_get_contents(dirname(__DIR__, 2).'/.github/workflows/coolify-next-build.yml');
+    $workflow = file_get_contents(dirname(__DIR__, 2).'/docs/upstream-workflows/coolify-next-build.yml');
 
     expect($workflow)
         ->toContain('name: Build Coolify Next')
@@ -129,7 +129,7 @@ it('publishes traceable rolling builds from next without creating an exact rc ta
 });
 
 it('requires a reviewed draft prerelease before publishing an exact rc', function () {
-    $workflow = file_get_contents(dirname(__DIR__, 2).'/.github/workflows/coolify-rc-release.yml');
+    $workflow = file_get_contents(dirname(__DIR__, 2).'/docs/upstream-workflows/coolify-rc-release.yml');
 
     expect($workflow)
         ->toContain('name: Release Coolify RC')
@@ -154,7 +154,7 @@ it('requires a reviewed draft prerelease before publishing an exact rc', functio
 });
 
 it('rebuilds stable images and publishes the reviewed draft after both architectures succeed', function () {
-    $workflow = file_get_contents(dirname(__DIR__, 2).'/.github/workflows/coolify-release.yml');
+    $workflow = file_get_contents(dirname(__DIR__, 2).'/docs/upstream-workflows/coolify-release.yml');
 
     expect($workflow)
         ->toContain('docker/build-push-action@v6')

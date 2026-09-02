@@ -9,7 +9,7 @@ it('uses a dedicated notification event for restart limits', function () {
         ->and($eventGrid)
         ->toContain("'Resources' => [")
         ->toContain("'key' => 'statusChange'")
-        ->toContain("'helper' => 'Notify when a resource stops or Coolify automatically restarts it.'")
+        ->toContain("'helper' => 'Notify when a resource stops or OnePloy automatically restarts it.'")
         ->toContain("'key' => 'restartLimitReached'")
         ->toContain("'label' => 'Restart limit reached'")
         ->and($telegramChannel)

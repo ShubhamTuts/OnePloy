@@ -1,9 +1,10 @@
 {
     "name": "coollabsio/coolify",
-    "description": "The Coolify project.",
+    "description": "OnePloy multi-tenant server and application management platform.",
     "license": "Apache-2.0",
     "type": "project",
     "keywords": [
+        "oneploy",
         "coolify",
         "deployment",
         "docker",

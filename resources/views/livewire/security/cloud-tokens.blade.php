@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Cloud Tokens | Coolify
+        Cloud Tokens | OnePloy
     </x-slot>
 
     <x-security.settings-layout>

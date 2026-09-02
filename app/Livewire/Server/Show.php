@@ -331,7 +331,7 @@ class Show extends Component
                 $this->dispatch(
                     'error',
                     'Cannot revalidate',
-                    'This server was transferred to another Coolify instance. Manage it from the target instance instead.'
+                    'This server was transferred to another OnePloy instance. Manage it from the target instance instead.'
                 );
 
                 return;
@@ -514,7 +514,7 @@ class Show extends Component
                 $this->dispatch('success', 'Server status refreshed: '.ucfirst($this->hetznerServerStatus ?? 'unknown'));
             }
 
-            // If Hetzner server is off but Coolify thinks it's still reachable, update Coolify's state
+            // If Hetzner server is off but OnePloy thinks it's still reachable, update OnePloy's state
             if ($this->hetznerServerStatus === 'off' && $this->server->settings->is_reachable) {
                 ['uptime' => $uptime, 'error' => $error] = $this->server->validateConnection();
                 if ($uptime) {

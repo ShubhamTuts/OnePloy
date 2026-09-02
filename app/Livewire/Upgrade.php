@@ -22,6 +22,8 @@ class Upgrade extends Component
 
     public bool $fullButton = false;
 
+    public bool $updatesManaged = false;
+
     protected $listeners = ['updateAvailable' => 'checkUpdate'];
 
     public function mount()
@@ -41,6 +43,14 @@ class Upgrade extends Component
     protected function refreshUpgradeState(): void
     {
         $this->currentVersion = config('constants.coolify.version');
+        $this->updatesManaged = (bool) config('oneploy.updates_enabled');
+        if (! $this->updatesManaged) {
+            $this->latestVersion = $this->currentVersion;
+            $this->isUpgradeAvailable = false;
+
+            return;
+        }
+
         $this->latestVersion = get_latest_version_of_coolify();
         $this->devMode = isDev();
 
@@ -67,6 +77,9 @@ class Upgrade extends Component
         try {
             if (! isInstanceAdmin()) {
                 abort(403);
+            }
+            if (! $this->updatesManaged) {
+                throw new \RuntimeException('OnePloy updates are disabled until a verified fork release channel is configured.');
             }
             if ($this->updateInProgress) {
                 return;

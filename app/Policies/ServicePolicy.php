@@ -104,9 +104,9 @@ class ServicePolicy
      */
     public function deploy(User $user, Service $service): bool
     {
-        $teamId = $this->getTeamId($service);
+        $team = $service->team();
 
-        return $teamId !== null && $user->isDeployerOfTeam($teamId);
+        return $team?->isTenantActive() === true && $user->isDeployerOfTeam($team->id);
     }
 
     /**

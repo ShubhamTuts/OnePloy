@@ -1,10 +1,10 @@
 @props([
     'label' => 'Domains',
-    'helper' => 'Add one domain per entry. Press Enter (or type a comma) to add it. You can specify a path and a port to bind the domain to.<br><br><span class=\'text-helper\'>Example</span><br>- https://app.coolify.io/api/v3<br>- https://app.coolify.io:3000 -> app.coolify.io will point to port 3000 inside the container.<br>- https://app.coolify.io:8080/api -> app.coolify.io/api will point to port 8080 inside the container.',
+    'helper' => 'Add one domain per entry. Press Enter (or type a comma) to add it. You can specify a path and a port to bind the domain to.<br><br><span class=\'text-helper\'>Example</span><br>- https://app.oneploy.dev/api/v3<br>- https://app.oneploy.dev:3000 -> app.oneploy.dev will point to port 3000 inside the container.<br>- https://app.oneploy.dev:8080/api -> app.oneploy.dev/api will point to port 8080 inside the container.',
     'model' => 'fqdn',
     'disabled' => false,
     'required' => false,
-    'placeholder' => 'https://coolify.io',
+    'placeholder' => 'https://oneploy.dev',
     'canUpdate' => null,
 ])
 

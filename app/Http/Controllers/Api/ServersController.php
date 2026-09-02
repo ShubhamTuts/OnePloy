@@ -968,7 +968,7 @@ class ServersController extends Controller
 
         if (! $server->canBeValidated()) {
             return response()->json([
-                'message' => 'This server was transferred to another Coolify instance and cannot be revalidated here.',
+                'message' => 'This server was transferred to another OnePloy instance and cannot be revalidated here.',
             ], 422);
         }
 

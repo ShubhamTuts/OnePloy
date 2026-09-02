@@ -104,4 +104,22 @@ describe('queue_application_deployment commit resolution', function () {
         $deployment = ApplicationDeploymentQueue::where('deployment_uuid', 'test-deploy-uuid-4')->first();
         expect($deployment->commit)->toBe($pinnedSha);
     });
+
+    test('blocks queue creation when the tenant is suspended', function () {
+        $application = makeApplication($this->environment->id, $this->destination->id, 'HEAD');
+        $this->team->suspend();
+
+        $result = queue_application_deployment(
+            application: $application,
+            deployment_uuid: 'test-deploy-suspended-tenant',
+        );
+
+        expect($result)->toMatchArray([
+            'status' => 'blocked',
+            'message' => 'Deployment blocked because this tenant is suspended or terminated.',
+        ]);
+        expect(ApplicationDeploymentQueue::query()
+            ->where('deployment_uuid', 'test-deploy-suspended-tenant')
+            ->exists())->toBeFalse();
+    });
 });

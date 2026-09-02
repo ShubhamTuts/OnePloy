@@ -79,7 +79,7 @@ class ConfigureDevelopmentQemuHost
         $subnet = trim($subnetResult->output());
 
         if ($subnetResult->failed() || $subnet === '') {
-            throw new RuntimeException('Unable to determine the Coolify Docker network subnet.');
+            throw new RuntimeException('Unable to determine the OnePloy Docker network subnet.');
         }
 
         $rule = sprintf('-s %s -d %s -o virbr0 -j ACCEPT', escapeshellarg($subnet), escapeshellarg(config('development-qemu.subnet')));

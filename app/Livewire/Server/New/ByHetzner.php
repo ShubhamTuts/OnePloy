@@ -627,13 +627,13 @@ class ByHetzner extends Component
         // Normalize server name to lowercase for RFC 1123 compliance
         $normalizedServerName = strtolower(trim($this->server_name));
 
-        // Prepare SSH keys array: Coolify key + user-selected Hetzner keys
+        // Prepare SSH keys array: OnePloy key + user-selected Hetzner keys
         $sshKeys = array_merge(
-            [$sshKeyId], // Coolify key (always included)
+            [$sshKeyId], // OnePloy key (always included)
             $this->selectedHetznerSshKeyIds // User-selected Hetzner keys
         );
 
-        // Remove duplicates in case the Coolify key was also selected
+        // Remove duplicates in case the OnePloy key was also selected
         $sshKeys = array_unique($sshKeys);
         $sshKeys = array_values($sshKeys); // Re-index array
 
@@ -717,7 +717,7 @@ class ByHetzner extends Component
                 $ipAddress = $hetznerServer['public_net']['ipv6']['ip'];
             }
 
-            // Create server in Coolify database immediately so the Hetzner
+            // Create server in OnePloy database immediately so the Hetzner
             // server is always tracked, even when no IP is assigned yet —
             // the server page polling backfills the placeholder IP later.
             $server = Server::create([

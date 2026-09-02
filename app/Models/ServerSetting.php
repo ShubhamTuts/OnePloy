@@ -241,7 +241,7 @@ class ServerSetting extends Model
         }
 
         if (blank($url)) {
-            throw new \RuntimeException('Set an instance FQDN, public IP, or reachable Coolify URL before enabling Sentinel.');
+            throw new \RuntimeException('Set an instance FQDN, public IP, or reachable OnePloy URL before enabling Sentinel.');
         }
 
         return $url;

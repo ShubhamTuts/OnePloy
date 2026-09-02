@@ -9,7 +9,7 @@ class SeedDevelopmentQemuServerCommand extends Command
 {
     protected $signature = 'dev:qemu:seed {profile : Profile key from config/development-qemu.php} {--keep-others}';
 
-    protected $description = 'Seed one development QEMU server in the Coolify database';
+    protected $description = 'Seed one development QEMU server in the OnePloy database';
 
     public function handle(): int
     {

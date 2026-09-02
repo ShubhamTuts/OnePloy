@@ -21,7 +21,7 @@ class CloudflareDomainConnect
     }
 
     /**
-     * Domain Connect is a Coolify Cloud feature and requires a signing key
+     * Domain Connect is a OnePloy Cloud feature and requires a signing key
      * (instance setting or env) to be present at runtime.
      */
     public function isAvailable(): bool
@@ -55,7 +55,7 @@ class CloudflareDomainConnect
     ): string {
         if (! $this->isAvailable()) {
             throw new RuntimeException(
-                'Domain Connect is only available on Coolify Cloud when a Domain Connect private key is configured.'
+                'Domain Connect is only available on OnePloy Cloud when a Domain Connect private key is configured.'
             );
         }
 
@@ -105,7 +105,7 @@ class CloudflareDomainConnect
     }
 
     /**
-     * Point a zone (and optional host) A record at the Coolify server IP.
+     * Point a zone (and optional host) A record at the OnePloy server IP.
      */
     public function buildHostingApplyUrl(
         string $domain,

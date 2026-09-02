@@ -19,7 +19,7 @@ class DeleteServer
     {
         $server = Server::withTrashed()->find($serverId);
 
-        // Delete from Hetzner even if server is already gone from Coolify
+        // Delete from Hetzner even if server is already gone from OnePloy
         if ($deleteFromHetzner && ($hetznerServerId || ($server && $server->hetzner_server_id))) {
             $this->deleteFromHetznerById(
                 $hetznerServerId ?? $server->hetzner_server_id,
@@ -44,17 +44,17 @@ class DeleteServer
             );
         }
 
-        logger()->debug($server ? 'Deleting server from Coolify' : 'Server already deleted from Coolify, skipping Coolify deletion');
+        logger()->debug($server ? 'Deleting server from OnePloy' : 'Server already deleted from OnePloy, skipping OnePloy deletion');
 
-        // If server is already deleted from Coolify, skip this part
+        // If server is already deleted from OnePloy, skip this part
         if (! $server) {
-            return; // Server already force deleted from Coolify
+            return; // Server already force deleted from OnePloy
         }
 
         try {
             $server->forceDelete();
         } catch (\Throwable $e) {
-            logger()->error('Failed to force delete server from Coolify', [
+            logger()->error('Failed to force delete server from OnePloy', [
                 'error' => $e->getMessage(),
                 'server_id' => $server->id,
             ]);
@@ -90,7 +90,7 @@ class DeleteServer
 
         } catch (\Throwable $e) {
 
-            // Log the error but don't prevent the server from being deleted from Coolify
+            // Log the error but don't prevent the server from being deleted from OnePloy
             logger()->error('Failed to delete server from Hetzner', [
                 'error' => $e->getMessage(),
                 'hetzner_server_id' => $hetznerServerId,

@@ -149,6 +149,6 @@ test('it only runs on Coolify Cloud', function () {
     config()->set('constants.coolify.self_hosted', true);
 
     $this->artisan('cloud:cleanup-unverified-users')
-        ->expectsOutput('This command can only be run on Coolify Cloud.')
+        ->expectsOutput('This command can only be run on OnePloy Cloud.')
         ->assertFailed();
 });

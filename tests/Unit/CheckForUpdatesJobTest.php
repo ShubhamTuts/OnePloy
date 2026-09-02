@@ -2,16 +2,35 @@
 
 use App\Jobs\CheckForUpdatesJob;
 use App\Models\InstanceSettings;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Tests\TestCase;
+
+uses(TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
     Cache::flush();
+    config([
+        'app.env' => 'testing',
+        'constants.coolify.self_hosted' => true,
+        'oneploy.updates_enabled' => true,
+    ]);
 
-    // Mock InstanceSettings
-    $this->settings = Mockery::mock(InstanceSettings::class);
-    $this->settings->shouldReceive('update')->andReturn(true);
+    InstanceSettings::forceCreate(['id' => 0]);
+});
+
+it('does not contact the upstream release channel when fork updates are disabled', function () {
+    config(['oneploy.updates_enabled' => false]);
+    Http::fake();
+
+    (new CheckForUpdatesJob)->handle();
+
+    Http::assertNothingSent();
 });
 
 afterEach(function () {
@@ -22,8 +41,8 @@ it('has correct job configuration', function () {
     $job = new CheckForUpdatesJob;
 
     $interfaces = class_implements($job);
-    expect($interfaces)->toContain(\Illuminate\Contracts\Queue\ShouldQueue::class);
-    expect($interfaces)->toContain(\Illuminate\Contracts\Queue\ShouldBeEncrypted::class);
+    expect($interfaces)->toContain(ShouldQueue::class);
+    expect($interfaces)->toContain(ShouldBeEncrypted::class);
 });
 
 it('uses max of CDN and cache versions', function () {
@@ -56,11 +75,6 @@ it('uses max of CDN and cache versions', function () {
     Cache::shouldReceive('forget')->once();
 
     config(['constants.coolify.version' => '4.0.5']);
-
-    // Mock instanceSettings function
-    $this->app->instance('App\Models\InstanceSettings', function () {
-        return $this->settings;
-    });
 
     $job = new CheckForUpdatesJob;
     $job->handle();
@@ -98,13 +112,13 @@ it('never downgrades from current running version', function () {
     // Running version is newest
     config(['constants.coolify.version' => '4.0.10']);
 
-    \Illuminate\Support\Facades\Log::shouldReceive('warning')
+    Log::shouldReceive('warning')
         ->once()
         ->with('Version downgrade prevented in CheckForUpdatesJob', Mockery::type('array'));
 
-    $this->app->instance('App\Models\InstanceSettings', function () {
-        return $this->settings;
-    });
+    Log::shouldReceive('warning')
+        ->once()
+        ->with('CDN served older Coolify version than cache', Mockery::type('array'));
 
     $job = new CheckForUpdatesJob;
     $job->handle();
@@ -123,16 +137,12 @@ it('uses data_set for safe version mutation', function () {
 
     config(['constants.coolify.version' => '4.0.5']);
 
-    $this->app->instance('App\Models\InstanceSettings', function () {
-        return $this->settings;
-    });
-
     $job = new CheckForUpdatesJob;
 
     // Should not throw even if structure is unexpected
     // data_set() handles nested path creation
     $job->handle();
-})->skip('Needs better mock setup for instanceSettings');
+});
 
 it('preserves other component versions when preventing Coolify downgrade', function () {
     // CDN has older Coolify but newer Traefik
@@ -169,17 +179,13 @@ it('preserves other component versions when preventing Coolify downgrade', funct
 
     config(['constants.coolify.version' => '4.0.10']);
 
-    \Illuminate\Support\Facades\Log::shouldReceive('warning')
+    Log::shouldReceive('warning')
         ->once()
         ->with('CDN served older Coolify version than cache', Mockery::type('array'));
 
-    \Illuminate\Support\Facades\Log::shouldReceive('warning')
+    Log::shouldReceive('warning')
         ->once()
         ->with('Version downgrade prevented in CheckForUpdatesJob', Mockery::type('array'));
-
-    $this->app->instance('App\Models\InstanceSettings', function () {
-        return $this->settings;
-    });
 
     $job = new CheckForUpdatesJob;
     $job->handle();

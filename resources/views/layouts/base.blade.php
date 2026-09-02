@@ -36,19 +36,18 @@
     <meta name="robots" content="noindex">
     <meta name="theme-color" content="#101010" id="theme-color-meta" />
     <meta name="color-scheme" content="dark light" />
-    <meta name="Description" content="Coolify: An open-source & self-hostable Heroku / Netlify / Vercel alternative" />
+    <meta name="Description" content="OnePloy: self-hosted multi-server application and infrastructure management." />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@coolifyio" />
-    <meta name="twitter:title" content="Coolify" />
-    <meta name="twitter:description" content="An open-source & self-hostable Heroku / Netlify / Vercel alternative." />
-    <meta name="twitter:image" content="https://cdn.coollabs.io/og-images/coolify.png" />
+    <meta name="twitter:title" content="OnePloy" />
+    <meta name="twitter:description" content="Self-hosted multi-server application and infrastructure management." />
+    <meta name="twitter:image" content="{{ asset('oneploy-logo.png') }}" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://coolify.io" />
-    <meta property="og:title" content="Coolify" />
-    <meta property="og:description" content="An open-source & self-hostable Heroku / Netlify / Vercel alternative." />
-    <meta property="og:site_name" content="Coolify" />
-    <meta property="og:image" content="https://cdn.coollabs.io/og-images/coolify.png" />
+    <meta property="og:url" content="{{ config('app.url') }}" />
+    <meta property="og:title" content="OnePloy" />
+    <meta property="og:description" content="Self-hosted multi-server application and infrastructure management." />
+    <meta property="og:site_name" content="OnePloy" />
+    <meta property="og:image" content="{{ asset('oneploy-logo.png') }}" />
     @use('App\Models\InstanceSettings')
     @php
 
@@ -63,12 +62,8 @@
             }
         }
     @endphp
-    <title>{{ $name }}{{ $title ?? 'Coolify' }}</title>
-    @env('local')
-        <link rel="icon" href="{{ asset('coolify-logo-dev-transparent.png') }}" type="image/png" />
-    @else
-        <link rel="icon" href="{{ asset('coolify-logo.svg') }}" type="image/svg+xml" />
-    @endenv
+    <title>{{ $name }}{{ $title ?? config('app.name', 'OnePloy') }}</title>
+    <link rel="icon" href="{{ asset('oneploy-logo.png') }}" type="image/png" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @vite(['resources/js/app.js', 'resources/css/app.css'])
     <script>
@@ -82,10 +77,6 @@
             display: none !important;
         }
     </style>
-    @if (config('app.name') == 'Coolify Cloud')
-        <script defer data-domain="app.coolify.io" src="https://analytics.coollabs.io/js/plausible.js"></script>
-        <script src="https://js.sentry-cdn.com/0f8593910512b5cdd48c6da78d4093be.min.js" crossorigin="anonymous"></script>
-    @endif
     @auth
         <script type="text/javascript" src="{{ URL::asset('js/echo.js') }}"></script>
         <script type="text/javascript" src="{{ URL::asset('js/pusher.js') }}"></script>

@@ -169,7 +169,7 @@ class SshMultiplexingHelper
     }
 
     /**
-     * Build an SCP command that downloads a remote file onto the Coolify host.
+     * Build an SCP command that downloads a remote file onto the OnePloy host.
      */
     public static function generateScpDownloadCommand(Server $server, string $remoteSource, string $localDest): string
     {

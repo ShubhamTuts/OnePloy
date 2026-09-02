@@ -200,7 +200,7 @@ class DigitalOceanController extends Controller
         security: [['bearerAuth' => []]],
         tags: ['DigitalOcean'],
         responses: [
-            new OA\Response(response: 201, description: 'DigitalOcean droplet created and linked to a Coolify server.'),
+            new OA\Response(response: 201, description: 'DigitalOcean droplet created and linked to a OnePloy server.'),
             new OA\Response(response: 401, ref: '#/components/responses/401'),
             new OA\Response(response: 422, description: 'Validation failed.'),
             new OA\Response(response: 429, description: 'DigitalOcean rate limit exceeded.'),

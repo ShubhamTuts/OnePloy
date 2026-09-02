@@ -19,7 +19,7 @@ class CheckForUpdatesJob implements ShouldBeEncrypted, ShouldQueue
     public function handle(): void
     {
         try {
-            if (isDev() || isCloud()) {
+            if (! config('oneploy.updates_enabled') || isDev() || isCloud()) {
                 return;
             }
             $settings = instanceSettings();

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Application;
+use App\Models\Team;
 use App\Models\User;
 use App\Policies\ApplicationPolicy;
 
@@ -138,10 +139,13 @@ it('denies delete when application has no team', function () {
 
 it('allows team admin to deploy their own team application', function () {
     $user = Mockery::mock(User::class)->makePartial();
-    $user->shouldReceive('isAdminOfTeam')->with(1)->andReturn(true);
+    $user->shouldReceive('isDeployerOfTeam')->with(1)->andReturn(true);
 
     $application = Mockery::mock(Application::class)->makePartial();
-    $application->shouldReceive('team')->andReturn((object) ['id' => 1]);
+    $team = Mockery::mock(Team::class)->makePartial();
+    $team->id = 1;
+    $team->shouldReceive('isTenantActive')->andReturn(true);
+    $application->shouldReceive('team')->andReturn($team);
 
     $policy = new ApplicationPolicy;
     expect($policy->deploy($user, $application))->toBeTrue();
@@ -149,10 +153,26 @@ it('allows team admin to deploy their own team application', function () {
 
 it('denies team member to deploy their own team application', function () {
     $user = Mockery::mock(User::class)->makePartial();
-    $user->shouldReceive('isAdminOfTeam')->with(1)->andReturn(false);
+    $user->shouldReceive('isDeployerOfTeam')->with(1)->andReturn(false);
 
     $application = Mockery::mock(Application::class)->makePartial();
-    $application->shouldReceive('team')->andReturn((object) ['id' => 1]);
+    $team = Mockery::mock(Team::class)->makePartial();
+    $team->id = 1;
+    $team->shouldReceive('isTenantActive')->andReturn(true);
+    $application->shouldReceive('team')->andReturn($team);
+
+    $policy = new ApplicationPolicy;
+    expect($policy->deploy($user, $application))->toBeFalse();
+});
+
+it('denies a deployer from deploying a suspended tenant application', function () {
+    $user = Mockery::mock(User::class)->makePartial();
+
+    $application = Mockery::mock(Application::class)->makePartial();
+    $team = Mockery::mock(Team::class)->makePartial();
+    $team->id = 1;
+    $team->shouldReceive('isTenantActive')->andReturn(false);
+    $application->shouldReceive('team')->andReturn($team);
 
     $policy = new ApplicationPolicy;
     expect($policy->deploy($user, $application))->toBeFalse();
@@ -160,7 +180,7 @@ it('denies team member to deploy their own team application', function () {
 
 it('allows team admin to manage deployments', function () {
     $user = Mockery::mock(User::class)->makePartial();
-    $user->shouldReceive('isAdminOfTeam')->with(1)->andReturn(true);
+    $user->shouldReceive('isDeployerOfTeam')->with(1)->andReturn(true);
 
     $application = Mockery::mock(Application::class)->makePartial();
     $application->shouldReceive('team')->andReturn((object) ['id' => 1]);
@@ -171,7 +191,7 @@ it('allows team admin to manage deployments', function () {
 
 it('denies team member to manage deployments', function () {
     $user = Mockery::mock(User::class)->makePartial();
-    $user->shouldReceive('isAdminOfTeam')->with(1)->andReturn(false);
+    $user->shouldReceive('isDeployerOfTeam')->with(1)->andReturn(false);
 
     $application = Mockery::mock(Application::class)->makePartial();
     $application->shouldReceive('team')->andReturn((object) ['id' => 1]);

@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 /**
- * Copy a bind-mount host path from one Coolify-managed server to another.
+ * Copy a bind-mount host path from one OnePloy-managed server to another.
  */
 class HostPathCloneJob implements ShouldBeEncrypted, ShouldQueue
 {

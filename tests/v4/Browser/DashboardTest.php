@@ -75,7 +75,7 @@ it('shows onboarding after first login', function () {
         ->fill('password', 'password')
         ->click('Login')
         ->wait(1.5)
-        ->assertSee('Welcome to Coolify')
+        ->assertSee('Welcome to OnePloy')
         ->assertSee('Continue')
         ->assertSee('Skip setup')
         ->screenshot(filename: 'dashboard-onboarding-after-login');

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Service;
+use App\Models\Team;
 use App\Models\User;
 use App\Policies\ServicePolicy;
 
@@ -128,10 +129,13 @@ it('denies delete when service has no team', function () {
 
 it('allows team admin to deploy their own team service', function () {
     $user = Mockery::mock(User::class)->makePartial();
-    $user->shouldReceive('isAdminOfTeam')->with(1)->andReturn(true);
+    $user->shouldReceive('isDeployerOfTeam')->with(1)->andReturn(true);
 
     $service = Mockery::mock(Service::class)->makePartial();
-    $service->shouldReceive('team')->andReturn((object) ['id' => 1]);
+    $team = Mockery::mock(Team::class)->makePartial();
+    $team->id = 1;
+    $team->shouldReceive('isTenantActive')->andReturn(true);
+    $service->shouldReceive('team')->andReturn($team);
 
     $policy = new ServicePolicy;
     expect($policy->deploy($user, $service))->toBeTrue();
@@ -139,10 +143,26 @@ it('allows team admin to deploy their own team service', function () {
 
 it('denies team member to deploy their own team service', function () {
     $user = Mockery::mock(User::class)->makePartial();
-    $user->shouldReceive('isAdminOfTeam')->with(1)->andReturn(false);
+    $user->shouldReceive('isDeployerOfTeam')->with(1)->andReturn(false);
 
     $service = Mockery::mock(Service::class)->makePartial();
-    $service->shouldReceive('team')->andReturn((object) ['id' => 1]);
+    $team = Mockery::mock(Team::class)->makePartial();
+    $team->id = 1;
+    $team->shouldReceive('isTenantActive')->andReturn(true);
+    $service->shouldReceive('team')->andReturn($team);
+
+    $policy = new ServicePolicy;
+    expect($policy->deploy($user, $service))->toBeFalse();
+});
+
+it('denies a deployer from deploying a suspended tenant service', function () {
+    $user = Mockery::mock(User::class)->makePartial();
+
+    $service = Mockery::mock(Service::class)->makePartial();
+    $team = Mockery::mock(Team::class)->makePartial();
+    $team->id = 1;
+    $team->shouldReceive('isTenantActive')->andReturn(false);
+    $service->shouldReceive('team')->andReturn($team);
 
     $policy = new ServicePolicy;
     expect($policy->deploy($user, $service))->toBeFalse();

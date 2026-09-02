@@ -8,6 +8,10 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    config(['oneploy.updates_enabled' => true]);
+});
+
 it('initializes latest version during mount from cached versions data', function () {
     config(['constants.coolify.version' => '4.0.0-beta.998']);
     InstanceSettings::forceCreate([
@@ -61,7 +65,7 @@ it('treats a brief upgrade poll miss as a reconnect, not a lost-contact failure'
 
     expect($upgradeView)
         ->toContain('Reconnecting. This is expected during an upgrade...')
-        ->not->toContain('Lost contact with Coolify');
+        ->not->toContain('Lost contact with OnePloy');
 });
 
 it('renders the upgrade control in the mobile top bar', function () {
@@ -80,7 +84,7 @@ it('supports a full size update button for settings', function () {
         ->toContain('$fullButton')
         ->toContain('Upgrade now')
         ->and($settingsView)
-        ->toContain('Update Coolify')
+        ->toContain('Update OnePloy')
         ->toContain(':full-button="true"')
         ->toContain('key="settings-upgrade"');
 });

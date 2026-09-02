@@ -20,6 +20,10 @@ class UpdateCoolify
 
     public function handle($manual_update = false)
     {
+        if (! config('oneploy.updates_enabled')) {
+            throw new \RuntimeException('OnePloy updates are disabled until a verified fork release channel is configured.');
+        }
+
         if (isDev()) {
             Sleep::for(10)->seconds();
 
@@ -121,11 +125,11 @@ class UpdateCoolify
         $registryUrl = coolifyRegistryUrl();
 
         remote_process([
-            "curl -fsSL {$upgradeScriptUrl} -o /data/coolify/source/upgrade.sh",
+            'curl -fsSL '.escapeShellValue($upgradeScriptUrl).' -o /data/coolify/source/upgrade.sh',
             'bash /data/coolify/source/upgrade.sh '.
-                escapeshellarg($this->latestVersion).' '.
-                escapeshellarg($latestHelperImageVersion).' '.
-                escapeshellarg($registryUrl),
+                escapeShellValue($this->latestVersion).' '.
+                escapeShellValue($latestHelperImageVersion).' '.
+                escapeShellValue($registryUrl),
         ], $this->server);
     }
 }

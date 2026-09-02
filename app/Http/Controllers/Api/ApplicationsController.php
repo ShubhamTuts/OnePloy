@@ -4382,7 +4382,7 @@ class ApplicationsController extends Controller
 
     #[OA\Post(
         summary: 'Migrate to Server',
-        description: 'Migrate an application to another destination/server owned by the authenticated team. Stops the application, optionally transfers persistent volume data when both servers are managed by Coolify, and updates database records. Redeploy after migration completes.',
+        description: 'Migrate an application to another destination/server owned by the authenticated team. Stops the application, optionally transfers persistent volume data when both servers are managed by OnePloy, and updates database records. Redeploy after migration completes.',
         path: '/applications/{uuid}/migrate',
         operationId: 'migrate-application-by-uuid',
         security: [['bearerAuth' => []]],

@@ -62,7 +62,7 @@ class CoolifyUpgradeStatus
             return [
                 'status' => 'in_progress',
                 'step' => $stepInt,
-                'message' => "Waiting for Coolify {$targetVersion} to come online...",
+                'message' => "Waiting for OnePloy {$targetVersion} to come online...",
                 ...$base,
             ];
         }

@@ -8,7 +8,7 @@ use Carbon\CarbonImmutable;
 
 class SslHelper
 {
-    private const DEFAULT_ORGANIZATION_NAME = 'Coolify';
+    private const DEFAULT_ORGANIZATION_NAME = 'OnePloy';
 
     private const DEFAULT_COUNTRY_NAME = 'XX';
 

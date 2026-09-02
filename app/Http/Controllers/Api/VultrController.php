@@ -176,7 +176,7 @@ class VultrController extends Controller
 
     #[OA\Post(
         summary: 'Create Vultr Server',
-        description: 'Create a Vultr instance and link it as a Coolify server.',
+        description: 'Create a Vultr instance and link it as a OnePloy server.',
         path: '/servers/vultr',
         operationId: 'create-vultr-server',
         security: [

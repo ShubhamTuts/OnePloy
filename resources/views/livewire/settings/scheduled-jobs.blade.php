@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Scheduled Jobs | Coolify
+        Scheduled Jobs | OnePloy
     </x-slot>
 
     <x-settings.layout>

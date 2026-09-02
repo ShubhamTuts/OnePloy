@@ -19,6 +19,10 @@ use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
 
+beforeEach(function () {
+    config(['oneploy.updates_enabled' => true]);
+});
+
 function updateCoolifyTestCreateRootServerAndSettings(array $settings = []): void
 {
     Team::factory()->create(['id' => 0]);
@@ -45,6 +49,13 @@ afterEach(function () {
 
 it('has UpdateCoolify action class', function () {
     expect(class_exists(UpdateCoolify::class))->toBeTrue();
+});
+
+it('rejects updates when the OnePloy release channel is disabled', function () {
+    config(['oneploy.updates_enabled' => false]);
+
+    expect(fn () => (new UpdateCoolify)->handle())
+        ->toThrow(RuntimeException::class, 'OnePloy updates are disabled');
 });
 
 it('validates cache against running version before fallback', function () {
@@ -122,7 +133,7 @@ it('passes the saved registry URL to the upgrade script command', function () {
     (new UpdateCoolify)->handle();
 
     expect(Activity::query()->latest('id')->first()?->getExtraProperty('command'))->toBe(
-        "curl -fsSL https://cdn.example.com/upgrade.sh -o /data/coolify/source/upgrade.sh\n".
+        "curl -fsSL 'https://cdn.example.com/upgrade.sh' -o /data/coolify/source/upgrade.sh\n".
         "bash /data/coolify/source/upgrade.sh '4.0.10' '1.0.14' 'ghcr.io'"
     );
 });
@@ -151,7 +162,7 @@ it('falls back to docker io for the upgrade script command when no registry is s
     (new UpdateCoolify)->handle();
 
     expect(Activity::query()->latest('id')->first()?->getExtraProperty('command'))->toBe(
-        "curl -fsSL https://cdn.example.com/upgrade.sh -o /data/coolify/source/upgrade.sh\n".
+        "curl -fsSL 'https://cdn.example.com/upgrade.sh' -o /data/coolify/source/upgrade.sh\n".
         "bash /data/coolify/source/upgrade.sh '4.0.10' '1.0.14' 'docker.io'"
     );
 });

@@ -53,7 +53,7 @@ it('does not mark the upgrade complete when the script finished but the running 
         ->and($result['step'])->toBe(6)
         ->and($result['running_version'])->toBe('4.3.0')
         ->and($result['target_version'])->toBe('4.3.1')
-        ->and($result['message'])->toContain('Waiting for Coolify')
+        ->and($result['message'])->toContain('Waiting for OnePloy')
         ->and($result['message'])->toContain('4.3.1');
 });
 

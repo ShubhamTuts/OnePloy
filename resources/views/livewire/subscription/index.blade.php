@@ -1,10 +1,10 @@
 <div class="application-settings-form w-full max-w-none">
     <x-slot:title>
-        Subscribe | Coolify
+        Subscribe | OnePloy
     </x-slot>
 
     <x-dashboard.navbar section="subscription" title="Subscription"
-        subtitle="Choose a plan for Coolify Cloud" />
+        subtitle="Choose a plan for OnePloy Cloud" />
 
     @if (auth()->user()->isAdminFromSession())
         @if ($loading)
@@ -14,7 +14,7 @@
         @else
             @if ($isUnpaid)
                 <x-application.settings-section title="Payment failed"
-                    description="Your latest Coolify Cloud payment could not be processed.">
+                    description="Your latest OnePloy Cloud payment could not be processed.">
                     <x-callout type="danger" title="Subscription payment is past due">
                         Update the payment method or settle the outstanding invoice in the billing portal.
                     </x-callout>
@@ -26,7 +26,7 @@
             @else
                 @if ($isCancelled || ! data_get(currentTeam(), 'subscription'))
                     <x-callout type="warning" title="No active subscription" class="mb-6">
-                        Choose a plan to continue using Coolify Cloud.
+                        Choose a plan to continue using OnePloy Cloud.
                     </x-callout>
                 @endif
                 {{-- Stripe is the only cloud provider; always render pricing so the page is never blank. --}}

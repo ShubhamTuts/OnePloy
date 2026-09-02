@@ -4,7 +4,6 @@ namespace App\Livewire;
 
 use DanHarrin\LivewireRateLimiting\WithRateLimiting;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Support\Facades\Http;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
@@ -34,16 +33,16 @@ class Help extends Component
             );
             $mail->subject("[HELP]: {$this->subject}");
             $type = set_transanctional_email_settings($settings);
+            $supportEmail = config('oneploy.support_email');
 
-            // Sending feedback through Cloud API
-            if (blank($type)) {
-                $url = 'https://app.coolify.io/api/feedback';
-                Http::post($url, [
-                    'content' => 'User: `'.auth()->user()?->email.'` with subject: `'.$this->subject.'` has the following problem: `'.$this->description.'`',
-                ]);
-            } else {
-                send_user_an_email($mail, auth()->user()?->email, 'feedback@coollabs.io');
+            if (blank($supportEmail) || blank($type)) {
+                throw new \RuntimeException(
+                    'Support delivery is not configured. Ask an administrator to configure ONEPLOY_SUPPORT_EMAIL and transactional email, or open '.
+                    config('oneploy.support_url')
+                );
             }
+
+            send_user_an_email($mail, auth()->user()?->email, $supportEmail);
             $this->dispatch('success', 'Feedback sent.', 'We will get in touch with you as soon as possible.');
             $this->reset('description', 'subject');
         } catch (\Throwable $e) {

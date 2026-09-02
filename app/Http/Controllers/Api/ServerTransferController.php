@@ -27,7 +27,7 @@ class ServerTransferController extends Controller
     }
 
     #[OA\Post(
-        summary: 'Migrate server to another Coolify instance',
+        summary: 'Migrate server to another OnePloy instance',
         description: 'One-shot handoff: export this server, import+claim on the target instance (using the provided token), then disable automations here. Requires read:sensitive and write.',
         path: '/servers/{uuid}/migrate',
         operationId: 'migrate-server-between-instances',
@@ -130,7 +130,7 @@ class ServerTransferController extends Controller
 
     #[OA\Get(
         summary: 'Export server transfer bundle',
-        description: 'Export a server and all resources hosted on it as a versioned transfer bundle for moving between Coolify instances. Requires read:sensitive.',
+        description: 'Export a server and all resources hosted on it as a versioned transfer bundle for moving between OnePloy instances. Requires read:sensitive.',
         path: '/servers/{uuid}/export',
         operationId: 'export-server-transfer-bundle',
         security: [['bearerAuth' => []]],
@@ -190,7 +190,7 @@ class ServerTransferController extends Controller
 
     #[OA\Post(
         summary: 'Import server transfer bundle',
-        description: 'Import a server transfer bundle into this Coolify instance (adopt mode by default).',
+        description: 'Import a server transfer bundle into this OnePloy instance (adopt mode by default).',
         path: '/servers/import',
         operationId: 'import-server-transfer-bundle',
         security: [['bearerAuth' => []]],

@@ -1,0 +1,82 @@
+name: OnePloy Foundation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oneploy-foundation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, curl, dom, fileinfo, intl, pcntl, pdo_pgsql, pdo_sqlite, posix, redis, sodium, sockets, xml, zip
+          coverage: none
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Check modified PHP formatting
+        run: >-
+          vendor/bin/pint --test
+          app/Actions/Team/CreateTenant.php
+          app/Actions/Server/UpdateCoolify.php
+          app/Jobs/CheckForUpdatesJob.php
+          app/Livewire/Team/Create.php
+          app/Livewire/Upgrade.php
+          app/Livewire/Settings/Updates.php
+          app/Models/Team.php
+          app/Policies/ApplicationPolicy.php
+          app/Policies/ResourceCreatePolicy.php
+          app/Policies/ServicePolicy.php
+          bootstrap/helpers/applications.php
+          config/oneploy.php
+          tests/Feature/CreateTenantActionTest.php
+          tests/Feature/QueueApplicationDeploymentCommitTest.php
+          tests/Unit/Policies/ApplicationPolicyTest.php
+          tests/Unit/Policies/ResourceCreatePolicyTest.php
+          tests/Unit/Policies/ServicePolicyTest.php
+          tests/Unit/CheckForUpdatesJobTest.php
+          tests/Unit/CoolifyUpgradeStatusTest.php
+          tests/Unit/UpdateCoolifyTest.php
+
+      - name: Run OnePloy tenancy tests
+        run: >-
+          php artisan test
+          tests/Feature/OnePloyTenancyTest.php
+          tests/Feature/CreateTenantActionTest.php
+          tests/Feature/TeamCreateSetsMcpDefaultTest.php
+          tests/Feature/QueueApplicationDeploymentCommitTest.php
+          tests/Unit/Policies/ApplicationPolicyTest.php
+          tests/Unit/Policies/ResourceCreatePolicyTest.php
+          tests/Unit/Policies/ServicePolicyTest.php
+          tests/Unit/CheckForUpdatesJobTest.php
+          tests/Unit/CoolifyUpgradeStatusTest.php
+          tests/Unit/UpdateCoolifyTest.php

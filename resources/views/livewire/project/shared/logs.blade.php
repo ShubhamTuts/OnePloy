@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        {{ data_get_str($resource, 'name')->limit(10) }} > Logs | Coolify
+        {{ data_get_str($resource, 'name')->limit(10) }} > Logs | OnePloy
     </x-slot>
 
     @if ($type === 'application')

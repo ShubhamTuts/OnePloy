@@ -13,6 +13,20 @@ use Spatie\Url\Url;
 
 function queue_application_deployment(Application $application, string $deployment_uuid, ?int $pull_request_id = 0, ?string $commit = null, bool $force_rebuild = false, bool $is_webhook = false, bool $is_api = false, bool $restart_only = false, ?string $git_type = null, bool $no_questions_asked = false, ?Server $server = null, ?StandaloneDocker $destination = null, bool $only_this_server = false, bool $rollback = false, ?string $docker_registry_image_tag = null)
 {
+    $team = $application->team()?->fresh();
+    if (! $team?->isTenantActive()) {
+        auditLog('deployment.blocked', [
+            'application_id' => $application->id,
+            'tenant_id' => $team?->id,
+            'reason' => 'tenant_inactive',
+        ], 'warning');
+
+        return [
+            'status' => 'blocked',
+            'message' => 'Deployment blocked because this tenant is suspended or terminated.',
+        ];
+    }
+
     $commit = $commit ?: ($application->git_commit_sha ?: 'HEAD');
     $application_id = $application->id;
     $deployment_link = Url::fromString($application->link()."/deployment/{$deployment_uuid}");
@@ -108,6 +122,16 @@ function queue_application_deployment(Application $application, string $deployme
 }
 function force_start_deployment(ApplicationDeploymentQueue $deployment)
 {
+    if (! $deployment->application?->team()?->fresh()?->isTenantActive()) {
+        auditLog('deployment.blocked', [
+            'application_id' => $deployment->application_id,
+            'deployment_id' => $deployment->id,
+            'reason' => 'tenant_inactive',
+        ], 'warning');
+
+        return false;
+    }
+
     $deployment->update([
         'status' => ApplicationDeploymentStatus::IN_PROGRESS->value,
     ]);
@@ -140,6 +164,11 @@ function queue_next_deployment(Application $application)
 
 function next_queuable(string $server_id, string $application_id, string $commit = 'HEAD', int $pull_request_id = 0): bool
 {
+    $application = Application::find($application_id);
+    if (! $application?->team()?->fresh()?->isTenantActive()) {
+        return false;
+    }
+
     // Check if there's already a deployment in progress for this application with the same pull_request_id
     // This allows normal deployments and PR deployments to run concurrently
     $in_progress = ApplicationDeploymentQueue::where('application_id', $application_id)

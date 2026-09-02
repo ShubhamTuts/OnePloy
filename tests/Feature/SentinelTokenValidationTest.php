@@ -178,7 +178,7 @@ describe('ServerSetting::ensureSentinelUrl', function () {
         app()->instance('request', Request::create('http://localhost:8000/server'));
 
         expect(fn () => $this->server->settings->fresh()->ensureSentinelUrl())
-            ->toThrow(RuntimeException::class, 'Set an instance FQDN, public IP, or reachable Coolify URL before enabling Sentinel.');
+            ->toThrow(RuntimeException::class, 'Set an instance FQDN, public IP, or reachable OnePloy URL before enabling Sentinel.');
     });
 });
 

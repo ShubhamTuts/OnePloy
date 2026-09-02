@@ -3,7 +3,7 @@
 namespace App\Support;
 
 /**
- * Provider-agnostic DNS records to point hostnames at a Coolify server.
+ * Provider-agnostic DNS records to point hostnames at a OnePloy server.
  */
 class DnsRecordHints
 {

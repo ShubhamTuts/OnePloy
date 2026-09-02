@@ -722,7 +722,7 @@ class All extends Component
         // Extract all hard-coded variables
         $hardcodedVars = extractHardcodedEnvironmentVariables($dockerComposeRaw);
 
-        // Compose self-references are inputs supplied through Coolify's .env file,
+        // Compose self-references are inputs supplied through OnePloy's .env file,
         // not hard-coded values. Keep them editable in the environment variables UI.
         $hardcodedVars = $hardcodedVars->reject(
             fn (array $variable): bool => $this->isSelfReferencingComposeVariable($variable)

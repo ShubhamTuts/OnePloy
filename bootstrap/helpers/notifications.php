@@ -30,7 +30,7 @@ function mail_from_identity(object $settings): array
 
     return [
         'address' => $address,
-        'name' => $name !== '' ? $name : 'Coolify',
+        'name' => $name !== '' ? $name : 'OnePloy',
     ];
 }
 

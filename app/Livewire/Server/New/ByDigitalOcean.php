@@ -476,7 +476,7 @@ class ByDigitalOcean extends Component
             $dropletId = (int) $droplet['id'];
 
             // Persist the server immediately so the droplet is always tracked
-            // in Coolify, even if waiting for the public IP fails below.
+            // in OnePloy, even if waiting for the public IP fails below.
             $server = DB::transaction(function () use ($dropletId, $droplet): Server {
                 $server = Server::create([
                     'name' => strtolower(trim($this->server_name)),

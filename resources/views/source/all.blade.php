@@ -1,6 +1,6 @@
 <x-layout>
     <x-slot:title>
-        Sources | Coolify
+        Sources | OnePloy
     </x-slot>
 
     <div class="application-settings-form w-full">

@@ -11,7 +11,7 @@ test('sentinel startup regenerates an empty endpoint from instance settings', fu
         ->and(file_get_contents(dirname(__DIR__, 2).'/app/Models/ServerSetting.php'))
         ->toContain('generateSentinelUrl(ignoreEvent: true)')
         ->toContain('sentinelUrlFromCurrentRequest()')
-        ->toContain('Set an instance FQDN, public IP, or reachable Coolify URL before enabling Sentinel.')
+        ->toContain('Set an instance FQDN, public IP, or reachable OnePloy URL before enabling Sentinel.')
         ->and($component)
         ->toContain('$this->sentinelCustomUrl = $this->server->settings->sentinel_custom_url;');
 });

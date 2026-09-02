@@ -9,7 +9,7 @@
         <x-unsaved-bar action="submit"
             targets="name,description,buildPack,staticImage,baseDirectory,dockerComposeLocation,dockerComposeCustomBuildCommand,dockerComposeCustomStartCommand,watchPaths,dockerfileLocation,dockerfileTargetBuild,publishDirectory,installCommand,buildCommand,startCommand,customNginxConfiguration,dockerfile,dockerRegistryImageName,dockerRegistryImageTag,portsExposes,portsMappings,customNetworkAliases,customDockerRunOptions,httpBasicAuthUsername,httpBasicAuthPassword,preDeploymentCommand,preDeploymentCommandContainer,postDeploymentCommand,postDeploymentCommandContainer,isContainerLabelReadonlyEnabled,isContainerLabelEscapeEnabled,customLabels" />
         <div class="application-settings-grid flex flex-col gap-6">
-            <x-application.settings-section id="application-details-section" title="Application details" helper="Name the application and choose the build strategy Coolify should use to deploy it." class="application-details-card">
+            <x-application.settings-section id="application-details-section" title="Application details" helper="Name the application and choose the build strategy OnePloy should use to deploy it." class="application-details-card">
             @if ($buildPack === 'dockercompose')
                 <x-slot:actions>
                     <x-forms.button canGate="update" :canResource="$application" wire:target='initLoadingCompose'
@@ -268,7 +268,7 @@
                                 <div class="grid gap-4 pt-2 sm:grid-cols-2">
                                     <x-forms.listbox id="isBuildServerEnabled" label="Builder selection"
                                         onChange="instantSave" :options="$buildServerOptions"
-                                        helper="Build your application on a dedicated build server. If several build servers are connected, Coolify picks an available one automatically. More info in the <a href='https://coolify.io/docs/knowledge-base/server/build-server' class='underline' target='_blank'>documentation</a>."
+                                        helper="Build your application on a dedicated build server. If several build servers are connected, OnePloy picks an available one automatically. More info in the <a href='https://coolify.io/docs/knowledge-base/server/build-server' class='underline' target='_blank'>documentation</a>."
                                         x-bind:disabled="!canUpdate" />
                                 </div>
                             @endif
@@ -335,7 +335,7 @@
                             id="isContainerLabelEscapeEnabled" instantSave
                             x-bind:disabled="!canUpdate"></x-forms.checkbox>
                         {{-- <x-forms.checkbox label="Readonly labels"
-                            helper="Labels are readonly by default. Readonly means that edits you do to the labels could be lost and Coolify will autogenerate the labels for you. If you want to edit the labels directly, disable this option. <br><br>Be careful, it could break the proxy configuration after you restart the container as Coolify will now NOT autogenerate the labels for you (ofc you can always reset the labels to the coolify defaults manually)."
+                            helper="Labels are readonly by default. Readonly means that edits you do to the labels could be lost and OnePloy will autogenerate the labels for you. If you want to edit the labels directly, disable this option. <br><br>Be careful, it could break the proxy configuration after you restart the container as OnePloy will now NOT autogenerate the labels for you (ofc you can always reset the labels to the coolify defaults manually)."
                             id="isContainerLabelReadonlyEnabled" instantSave></x-forms.checkbox> --}}
                     </div>
                 </div>
@@ -489,7 +489,7 @@
 
                 <x-application.settings-section id="runtime-section" title="Runtime" helper="Options applied to the container when it starts.">
                     <x-forms.input
-                        helper="You can add custom docker run options that will be used when your container is started.<br>Note: Not all options are supported, as they could mess up Coolify's automation and could cause bad experience for users.<br><br>Check the <a class='underline dark:text-white' href='https://coolify.io/docs/knowledge-base/docker/custom-commands'>docs.</a>"
+                        helper="You can add custom docker run options that will be used when your container is started.<br>Note: Not all options are supported, as they could mess up OnePloy's automation and could cause bad experience for users.<br><br>Check the <a class='underline dark:text-white' href='https://coolify.io/docs/knowledge-base/docker/custom-commands'>docs.</a>"
                         placeholder="--cap-add SYS_ADMIN --device=/dev/fuse --security-opt apparmor:unconfined --ulimit nofile=1024:1024 --tmpfs /run:rw,noexec,nosuid,size=65536k --hostname=myapp"
                         id="customDockerRunOptions" label="Custom Docker options" x-bind:disabled="!canUpdate" />
                 </x-application.settings-section>
@@ -497,7 +497,7 @@
                 <x-application.settings-section id="security-section" title="Security" helper="Protect this application with authentication at the proxy level.">
                     @if ($application->settings->is_container_label_readonly_enabled == false)
                     <x-empty size="sm" title="Authentication is managed through labels"
-                        description="Authentication is managed via manual proxy labels. Switch label management back to Coolify to configure it here."
+                        description="Authentication is managed via manual proxy labels. Switch label management back to OnePloy to configure it here."
                         icon-name="admin">
                         <x-slot:contents>
                             <button type="button" class="button"
@@ -508,7 +508,7 @@
                     </x-empty>
                     @else
                     <x-forms.listbox id="isHttpBasicAuthEnabled" label="Authentication" onChange="instantSave"
-                        helper="HTTP Basic Authentication adds the required authentication labels to the proxy. Coolify currently supports a single username and password."
+                        helper="HTTP Basic Authentication adds the required authentication labels to the proxy. OnePloy currently supports a single username and password."
                         :options="[
                             ['value' => false, 'label' => 'None'],
                             ['value' => true, 'label' => 'HTTP Basic Authentication'],
@@ -555,9 +555,9 @@
                 <div class="grid w-full gap-4 sm:grid-cols-2">
                     <x-forms.listbox id="isContainerLabelReadonlyEnabled" label="Label management"
                         onChange="instantSave"
-                        helper="When Coolify manages the labels, they are regenerated automatically and manual edits can be lost.<br><br>If you edit them yourself, be careful: a wrong label set can break the proxy configuration after a restart (you can always reset to the Coolify defaults)."
+                        helper="When OnePloy manages the labels, they are regenerated automatically and manual edits can be lost.<br><br>If you edit them yourself, be careful: a wrong label set can break the proxy configuration after a restart (you can always reset to the OnePloy defaults)."
                         :options="[
-                            ['value' => true, 'label' => 'Managed by Coolify (auto-generated)'],
+                            ['value' => true, 'label' => 'Managed by OnePloy (auto-generated)'],
                             ['value' => false, 'label' => 'Managed manually (edit labels yourself)'],
                         ]" x-bind:disabled="!canUpdate" />
                     <x-forms.listbox id="isContainerLabelEscapeEnabled" label="Special characters"
@@ -572,7 +572,7 @@
                     <div class="mb-1.5 flex items-center justify-between gap-3">
                         <label class="flex w-fit items-center gap-1.5" style="margin-bottom: 0">Active labels</label>
                         @can('update', $application)
-                            <x-modal-confirmation title="Confirm Labels Reset to Coolify Defaults?"
+                            <x-modal-confirmation title="Confirm Labels Reset to OnePloy Defaults?"
                                 buttonTitle="Reset to defaults" submitAction="resetDefaultLabels(true)"
                                 :actions="[
                                     'All your custom proxy labels will be lost.',

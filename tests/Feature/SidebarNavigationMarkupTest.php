@@ -33,11 +33,11 @@ it('initializes persisted sidebar state before enabling layout transitions', fun
         ->toContain(":class=\"[collapsed ? 'lg:ml-16' : 'lg:ml-56', sidebarReady ? 'transition-[margin] duration-200' : '']\"");
 });
 
-it('shows the coolify icon in the collapsed desktop brand slot', function () {
+it('shows the OnePloy icon in the collapsed desktop brand slot', function () {
     $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
 
     expect($layout)
-        ->toContain('x-show="collapsed" x-cloak src="/coolify-logo.svg" alt="Coolify"')
+        ->toContain('x-show="collapsed" x-cloak src="/oneploy-logo.png" alt="OnePloy"')
         ->not->toContain('>C</span>');
 });
 
@@ -151,7 +151,7 @@ it('shows section titles and descriptions above settings navigation on smaller s
 })->with([
     ['notification/settings-layout.blade.php', 'Notifications', 'Configure how your team receives deployment and system alerts.'],
     ['security/settings-layout.blade.php', 'Keys & Tokens', 'Manage SSH keys, cloud credentials, and API access tokens.'],
-    ['settings/layout.blade.php', 'Instance Settings', 'Configure global settings for this Coolify instance.'],
+    ['settings/layout.blade.php', 'Instance Settings', 'Configure global settings for this OnePloy instance.'],
     ['team/settings-layout.blade.php', 'Team', 'Manage your team, members, and access settings.'],
 ]);
 

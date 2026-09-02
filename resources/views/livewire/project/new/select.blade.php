@@ -304,7 +304,7 @@
                                     </div>
 
                                     <p class="mt-3 line-clamp-2 text-[12px] leading-5 text-neutral-600 dark:text-fg-dim"
-                                        x-text="service.slogan || service.description || 'Deploy this service with a ready-to-use Coolify template.'">
+                                        x-text="service.slogan || service.description || 'Deploy this service with a ready-to-use OnePloy template.'">
                                     </p>
 
                                     <div
@@ -501,7 +501,7 @@
 
                             this.docCheckInProgress[serviceName] = true;
 
-                            // 1. Try Coolify docs first
+                            // 1. Try OnePloy docs first
                             const coolifyUrl = this.coolifyDocsUrl(service);
                             const coolifyExists = await this.checkUrlExists(coolifyUrl);
 
@@ -884,7 +884,7 @@
     @endif
     @if ($current_step === 'existing-postgresql')
         <x-application.settings-section title="Connect an existing PostgreSQL database"
-            description="Provide the connection URL for the database Coolify should use.">
+            description="Provide the connection URL for the database OnePloy should use.">
             <form wire:submit="addExistingPostgresql" class="flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div class="min-w-0 flex-1">
                     <x-forms.input placeholder="postgres://username:password@database:5432" label="Database URL"

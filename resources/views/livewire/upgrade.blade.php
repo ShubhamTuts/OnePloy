@@ -4,7 +4,13 @@
         latestVersion: @js($latestVersion),
         devMode: @js($devMode)
     })">
-    @if ($isUpgradeAvailable)
+    @if (!$updatesManaged)
+        @if ($fullButton)
+            <x-callout type="warning" title="Fork update channel disabled">
+                OnePloy will not install upstream images. Enable updates only after configuring and verifying a OnePloy-owned release channel.
+            </x-callout>
+        @endif
+    @elseif ($isUpgradeAvailable)
         <div :class="{ 'z-40': modalOpen }" class="relative w-auto h-auto">
             @if ($fullButton)
                 <x-forms.button type="button" @click="modalOpen=true" x-show="!showProgress" x-cloak isHighlighted>
@@ -172,7 +178,7 @@
             </template>
         </div>
     @elseif ($fullButton)
-        <p class="text-sm text-neutral-600 dark:text-fg-dim">Coolify is up to date.</p>
+        <p class="text-sm text-neutral-600 dark:text-fg-dim">OnePloy is up to date.</p>
     @endif
 </div>
 
@@ -213,7 +219,7 @@
                 const steps = [
                     { step: 1, status: '[DEV] Preparing upgrade environment...' },
                     { step: 2, status: '[DEV] Pulling helper image...' },
-                    { step: 3, status: '[DEV] Pulling Coolify image...' },
+                    { step: 3, status: '[DEV] Pulling OnePloy image...' },
                     { step: 4, status: '[DEV] Restarting services...' },
                 ];
 
@@ -337,9 +343,9 @@
 
             getReviveStatusMessage(elapsedMinutes, attempts) {
                 if (elapsedMinutes === 0) {
-                    return `Waiting for Coolify to come back online... (attempt ${attempts})`;
+                    return `Waiting for OnePloy to come back online... (attempt ${attempts})`;
                 } else if (elapsedMinutes < 2) {
-                    return `Waiting for Coolify to come back online... (${elapsedMinutes} minute${elapsedMinutes !== 1 ? 's' : ''} elapsed)`;
+                    return `Waiting for OnePloy to come back online... (${elapsedMinutes} minute${elapsedMinutes !== 1 ? 's' : ''} elapsed)`;
                 } else if (elapsedMinutes < 5) {
                     return `Update in progress, this may take several minutes... (${elapsedMinutes} minutes elapsed)`;
                 } else if (elapsedMinutes < 10) {
@@ -461,7 +467,7 @@
                             this.serviceDown = true;
                             this.instanceWentDown = true;
                             this.currentStep = 4;
-                            this.currentStatus = 'Coolify is restarting with the new version...';
+                            this.currentStatus = 'OnePloy is restarting with the new version...';
                             if (this.checkUpgradeStatusInterval) {
                                 clearInterval(this.checkUpgradeStatusInterval);
                                 this.checkUpgradeStatusInterval = null;

@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Teams | Coolify
+        Teams | OnePloy
     </x-slot>
 
     <x-team.settings-layout>

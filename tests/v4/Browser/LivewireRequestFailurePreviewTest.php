@@ -18,7 +18,7 @@ it('suppresses proxy error responses and shows a toast', function () {
         ->fill('email', 'test@example.com')
         ->fill('password', 'password')
         ->click('Login')
-        ->assertSee('Welcome to Coolify');
+        ->assertSee('Welcome to OnePloy');
 
     // Boarding redirects every other path; finish it so the preview page loads.
     // User::currentTeam() caches the team, so flush after the update.
@@ -29,7 +29,7 @@ it('suppresses proxy error responses and shows a toast', function () {
         ->assertSee('Livewire request failure preview')
         ->click('502')
         ->assertSee('Action could not be completed')
-        ->assertSee('Coolify did not receive a response. Please try again.')
+        ->assertSee('OnePloy did not receive a response. Please try again.')
         ->assertSee('Livewire request failure preview')
         ->assertDontSee('cloudflare proxy error')
         ->screenshot(filename: 'livewire-request-failure-toast');

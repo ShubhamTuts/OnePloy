@@ -383,7 +383,7 @@ class Domains extends Component
      *
      * Messaging depends on Direction:
      * - both: both hosts are first-class and need DNS to the server
-     * - www / non-www: the missing pair is for Coolify's redirect (still must resolve to
+     * - www / non-www: the missing pair is for OnePloy's redirect (still must resolve to
      *   the server so the proxy can redirect; not framed as a separate primary site)
      *
      * @param  array<int, array<string, mixed>>  $configuredRows

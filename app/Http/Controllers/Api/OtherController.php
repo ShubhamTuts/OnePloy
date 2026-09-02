@@ -19,7 +19,7 @@ class OtherController extends Controller
 
     #[OA\Get(
         summary: 'Version',
-        description: 'Get Coolify version.',
+        description: 'Get OnePloy version.',
         path: '/version',
         operationId: 'version',
         security: [

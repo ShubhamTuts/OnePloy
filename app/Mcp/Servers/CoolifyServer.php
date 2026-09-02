@@ -55,7 +55,7 @@ use Laravel\Mcp\Server;
 
 class CoolifyServer extends Server
 {
-    protected string $name = 'Coolify';
+    protected string $name = 'OnePloy';
 
     protected string $version = '0.2.0';
 
@@ -67,7 +67,7 @@ class CoolifyServer extends Server
     public int $defaultPaginationLength = 100;
 
     protected string $instructions = <<<'MD'
-Coolify MCP for the authenticated team token. Every tool enforces team ownership.
+OnePloy MCP for the authenticated team token. Every tool enforces team ownership.
 
 Start here (prefer these before deep get_*):
 1. coolify_help — tool catalog by intent (overview|search|debug|deploy|essentials).

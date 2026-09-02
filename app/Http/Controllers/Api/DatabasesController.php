@@ -3058,7 +3058,7 @@ class DatabasesController extends Controller
 
     #[OA\Post(
         summary: 'Migrate to Server',
-        description: 'Migrate a database to another destination/server owned by the authenticated team. Stops the database, optionally transfers persistent volume data when both servers are managed by Coolify, and updates database records. Redeploy after migration completes.',
+        description: 'Migrate a database to another destination/server owned by the authenticated team. Stops the database, optionally transfers persistent volume data when both servers are managed by OnePloy, and updates database records. Redeploy after migration completes.',
         path: '/databases/{uuid}/migrate',
         operationId: 'migrate-database-by-uuid',
         security: [['bearerAuth' => []]],

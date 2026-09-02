@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Telegram Notifications | Coolify
+        Telegram Notifications | OnePloy
     </x-slot>
 
     <x-notification.settings-layout>

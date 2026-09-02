@@ -11,7 +11,7 @@ class ExplainFailedDeploy extends Prompt
 {
     protected string $name = 'explain_failed_deploy';
 
-    protected string $description = 'Guided workflow to explain a failed Coolify deployment using list/get deployment tools and optional log summary.';
+    protected string $description = 'Guided workflow to explain a failed OnePloy deployment using list/get deployment tools and optional log summary.';
 
     public function handle(Request $request): Response
     {
@@ -45,7 +45,7 @@ class ExplainFailedDeploy extends Prompt
             ->map(fn (string $step, int $i) => ($i + 1).'. '.$step)
             ->implode("\n");
 
-        $body = "You are explaining a failed Coolify deployment for the authenticated team.\n\n{$numbered}";
+        $body = "You are explaining a failed OnePloy deployment for the authenticated team.\n\n{$numbered}";
 
         return Response::text($body);
     }

@@ -10,12 +10,12 @@ beforeEach(function () {
 
 afterEach(function () {
     Carbon::setTestNow();
-    \Mockery::close();
+    Mockery::close();
 });
 
 it('marks stuck scheduled task executions as failed without triggering notifications', function () {
     // Mock the ScheduledTaskExecution model
-    $mockBuilder = \Mockery::mock('alias:'.ScheduledTaskExecution::class);
+    $mockBuilder = Mockery::mock('alias:'.ScheduledTaskExecution::class);
 
     // Expect where clause to be called with 'running' status
     $mockBuilder->shouldReceive('where')
@@ -28,7 +28,7 @@ it('marks stuck scheduled task executions as failed without triggering notificat
         ->once()
         ->with([
             'status' => 'failed',
-            'message' => 'Marked as failed during Coolify startup - job was interrupted',
+            'message' => 'Marked as failed during OnePloy startup - job was interrupted',
             'finished_at' => Carbon::now(),
         ])
         ->andReturn(2); // Simulate 2 records updated
@@ -36,7 +36,7 @@ it('marks stuck scheduled task executions as failed without triggering notificat
     // Execute the cleanup logic directly
     $updatedCount = ScheduledTaskExecution::where('status', 'running')->update([
         'status' => 'failed',
-        'message' => 'Marked as failed during Coolify startup - job was interrupted',
+        'message' => 'Marked as failed during OnePloy startup - job was interrupted',
         'finished_at' => Carbon::now(),
     ]);
 
@@ -46,7 +46,7 @@ it('marks stuck scheduled task executions as failed without triggering notificat
 
 it('marks stuck database backup executions as failed without triggering notifications', function () {
     // Mock the ScheduledDatabaseBackupExecution model
-    $mockBuilder = \Mockery::mock('alias:'.ScheduledDatabaseBackupExecution::class);
+    $mockBuilder = Mockery::mock('alias:'.ScheduledDatabaseBackupExecution::class);
 
     // Expect where clause to be called with 'running' status
     $mockBuilder->shouldReceive('where')
@@ -59,7 +59,7 @@ it('marks stuck database backup executions as failed without triggering notifica
         ->once()
         ->with([
             'status' => 'failed',
-            'message' => 'Marked as failed during Coolify startup - job was interrupted',
+            'message' => 'Marked as failed during OnePloy startup - job was interrupted',
             'finished_at' => Carbon::now(),
         ])
         ->andReturn(3); // Simulate 3 records updated
@@ -67,7 +67,7 @@ it('marks stuck database backup executions as failed without triggering notifica
     // Execute the cleanup logic directly
     $updatedCount = ScheduledDatabaseBackupExecution::where('status', 'running')->update([
         'status' => 'failed',
-        'message' => 'Marked as failed during Coolify startup - job was interrupted',
+        'message' => 'Marked as failed during OnePloy startup - job was interrupted',
         'finished_at' => Carbon::now(),
     ]);
 
@@ -77,7 +77,7 @@ it('marks stuck database backup executions as failed without triggering notifica
 
 it('handles cleanup when no stuck executions exist', function () {
     // Mock the ScheduledTaskExecution model
-    $mockBuilder = \Mockery::mock('alias:'.ScheduledTaskExecution::class);
+    $mockBuilder = Mockery::mock('alias:'.ScheduledTaskExecution::class);
 
     $mockBuilder->shouldReceive('where')
         ->once()
@@ -90,7 +90,7 @@ it('handles cleanup when no stuck executions exist', function () {
 
     $updatedCount = ScheduledTaskExecution::where('status', 'running')->update([
         'status' => 'failed',
-        'message' => 'Marked as failed during Coolify startup - job was interrupted',
+        'message' => 'Marked as failed during OnePloy startup - job was interrupted',
         'finished_at' => Carbon::now(),
     ]);
 
@@ -98,11 +98,11 @@ it('handles cleanup when no stuck executions exist', function () {
 });
 
 it('uses correct failure message for interrupted jobs', function () {
-    $expectedMessage = 'Marked as failed during Coolify startup - job was interrupted';
+    $expectedMessage = 'Marked as failed during OnePloy startup - job was interrupted';
 
     // Verify the message clearly indicates the job was interrupted during startup
     expect($expectedMessage)
-        ->toContain('Coolify startup')
+        ->toContain('OnePloy startup')
         ->toContain('interrupted')
         ->toContain('failed');
 });

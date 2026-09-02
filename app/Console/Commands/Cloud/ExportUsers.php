@@ -12,12 +12,12 @@ class ExportUsers extends Command
 {
     protected $signature = 'cloud:export-users';
 
-    protected $description = 'Export subscribed and unsubscribed verified Coolify Cloud users to separate CSV files';
+    protected $description = 'Export subscribed and unsubscribed verified OnePloy Cloud users to separate CSV files';
 
     public function handle(): int
     {
         if (! isCloud()) {
-            $this->error('This command can only be run on Coolify Cloud.');
+            $this->error('This command can only be run on OnePloy Cloud.');
 
             return self::FAILURE;
         }

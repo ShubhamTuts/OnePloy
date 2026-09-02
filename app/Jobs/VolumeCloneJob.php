@@ -86,7 +86,7 @@ class VolumeCloneJob implements ShouldBeEncrypted, ShouldQueue
                 "chmod 777 {$tgtDir}",
             ], $this->targetServer);
 
-            // Coolify host is the intermediary: download from source, upload to target.
+            // OnePloy host is the intermediary: download from source, upload to target.
             instant_scp_from_server(
                 "{$sourceCloneDir}/volume-data.tar.gz",
                 $localArchive,

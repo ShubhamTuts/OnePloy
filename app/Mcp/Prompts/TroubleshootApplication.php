@@ -19,11 +19,11 @@ class TroubleshootApplication extends Prompt
         $uuid = is_string($uuid) && $uuid !== '' ? $uuid : '{application_uuid}';
 
         $text = <<<MD
-You are troubleshooting a Coolify application (UUID: `{$uuid}`) for the authenticated team.
+You are troubleshooting a OnePloy application (UUID: `{$uuid}`) for the authenticated team.
 
-Use Coolify MCP tools over HTTP only (no shell/DB). Do not invent UUIDs. Team scope is enforced by the API token.
+Use OnePloy MCP tools over HTTP only (no shell/DB). Do not invent UUIDs. Team scope is enforced by the API token.
 
-## Phase A — always available (Coolify DB / API metadata)
+## Phase A — always available (OnePloy DB / API metadata)
 1. `get_application` uuid=`{$uuid}` — name, status, fqdn, git, build pack.
 2. If status is not running (or unknown): `list_unhealthy_resources` with sample_only=true, then confirm this app is listed.
 3. `list_deployments` application_uuid=`{$uuid}` — recent deploy statuses.

@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Team;
 
-use App\Models\Team;
+use App\Actions\Team\CreateTenant;
 use App\Support\ValidationPatterns;
 use Livewire\Component;
 
@@ -29,13 +29,11 @@ class Create extends Component
     {
         try {
             $this->validate();
-            $team = Team::create([
-                'name' => $this->name,
-                'description' => $this->description,
-                'personal_team' => false,
-                'is_mcp_server_enabled' => true,
-            ]);
-            auth()->user()->teams()->attach($team, ['role' => 'owner']);
+            $team = CreateTenant::run(
+                owner: auth()->user(),
+                name: $this->name,
+                description: $this->description,
+            );
             refreshSession($team);
 
             return redirectRoute($this, 'team.index');

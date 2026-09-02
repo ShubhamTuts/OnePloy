@@ -95,8 +95,8 @@ class Updates extends Component
     private function registryEnvSyncCommand(string $registryUrl): string
     {
         $envFile = '/data/coolify/source/.env';
-        $sedExpression = escapeshellarg("s|^REGISTRY_URL=.*|REGISTRY_URL={$registryUrl}|");
-        $registryLine = escapeshellarg("REGISTRY_URL={$registryUrl}");
+        $sedExpression = escapeShellValue("s|^REGISTRY_URL=.*|REGISTRY_URL={$registryUrl}|");
+        $registryLine = escapeShellValue("REGISTRY_URL={$registryUrl}");
 
         return "if grep -q '^REGISTRY_URL=' {$envFile}; then sed -i {$sedExpression} {$envFile}; else printf '%s\\n' {$registryLine} >> {$envFile}; fi";
     }
