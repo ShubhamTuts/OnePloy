@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "channel": "stable",
+  "ready": false,
+  "version": "0.1.0",
+  "source_repository": "ShubhamTuts/OnePloy",
+  "source_ref": "main",
+  "images": {
+    "app": "ghcr.io/shubhamtuts/oneploy:0.1.0",
+    "helper": "ghcr.io/shubhamtuts/oneploy-helper:0.1.0",
+    "realtime": "ghcr.io/shubhamtuts/oneploy-realtime:0.1.0"
+  },
+  "configuration": {
+    "compose": "https://raw.githubusercontent.com/ShubhamTuts/OnePloy/main/docker-compose.yml",
+    "compose_production": "https://raw.githubusercontent.com/ShubhamTuts/OnePloy/main/docker-compose.prod.yml",
+    "environment_template": "https://raw.githubusercontent.com/ShubhamTuts/OnePloy/main/.env.production",
+    "installer": "https://raw.githubusercontent.com/ShubhamTuts/OnePloy/main/scripts/oneploy-install.sh",
+    "upgrader": "https://raw.githubusercontent.com/ShubhamTuts/OnePloy/main/scripts/oneploy-upgrade.sh"
+  },
+  "minimum": {
+    "docker": "24.0",
+    "memory_mb": 1900,
+    "free_disk_gb": 20
+  },
+  "notes": "Set ready=true only after the 0.1.0 images exist, fresh-server installation passes, upgrade/rollback acceptance passes, and the release is approved."
+}
