@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\OneployCheckoutSession;
+use App\Models\OneployDomain;
 use App\Models\OneployMarketplaceApp;
 use App\Services\OnePloy\CatalogService;
 use App\Services\OnePloy\CheckoutService;
 use App\Services\OnePloy\ConnectResellerClient;
+use App\Services\OnePloy\DomainCheckoutService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use RuntimeException;
 
 class StorefrontController extends Controller
 {
@@ -29,14 +33,112 @@ class StorefrontController extends Controller
         ]);
     }
 
-    public function domainSearch(Request $request, ConnectResellerClient $registrar): JsonResponse
-    {
+    public function domainSearch(
+        Request $request,
+        ConnectResellerClient $registrar,
+        DomainCheckoutService $domainCheckout,
+    ): JsonResponse {
         $domain = strtolower(trim((string) $request->query('q', $request->query('domain'))));
-        abort_if($domain === '', 422, 'Domain is required.');
+        Validator::make(['domain' => $domain], [
+            'domain' => ['required', 'string', 'max:253', 'regex:/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i'],
+        ])->validate();
+        $currency = strtoupper((string) $request->query('currency', config('oneploy.domains.default_currency')));
 
         return response()->json([
             'availability' => $registrar->availability($domain),
             'suggestions' => $registrar->suggest($domain),
+            'quote' => $domainCheckout->quote($domain, $currency),
+        ]);
+    }
+
+    public function domainCheckout(Request $request, DomainCheckoutService $domainCheckout): JsonResponse
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+
+        $data = $request->validate([
+            'domain' => ['required', 'string', 'max:253', 'regex:/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i'],
+            'currency' => ['nullable', 'string', 'size:3'],
+            'years' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'privacy' => ['nullable', 'boolean'],
+            'idempotency_key' => ['nullable', 'string', 'max:100'],
+            'registrant' => ['required', 'array'],
+            'registrant.name' => ['required', 'string', 'max:100'],
+            'registrant.email' => ['required', 'email:rfc', 'max:255'],
+            'registrant.company' => ['nullable', 'string', 'max:100'],
+            'registrant.address' => ['required', 'string', 'max:255'],
+            'registrant.city' => ['required', 'string', 'max:100'],
+            'registrant.state' => ['required', 'string', 'max:100'],
+            'registrant.country' => ['required', 'string', 'max:100'],
+            'registrant.postal_code' => ['required', 'string', 'max:20'],
+            'registrant.phone_country_code' => ['required', 'string', 'regex:/^\+?[0-9]{1,4}$/'],
+            'registrant.phone' => ['required', 'string', 'regex:/^[0-9][0-9 -]{5,19}$/'],
+            'registrant.consent' => ['accepted'],
+        ]);
+        $team = currentTeam();
+        abort_unless($team, 403, 'Select a team before starting checkout.');
+
+        $registrant = $data['registrant'];
+        $registrant['company'] = filled($registrant['company'] ?? null)
+            ? $registrant['company']
+            : $registrant['name'];
+        unset($registrant['consent']);
+        $registrant['consented_at'] = now()->toIso8601String();
+        $registrant['consented_by'] = $request->user()->id;
+
+        try {
+            $purchase = $domainCheckout->start(
+                team: $team,
+                userId: $request->user()->id,
+                domain: $data['domain'],
+                registrant: $registrant,
+                currency: $data['currency'] ?? null,
+                years: $data['years'] ?? 1,
+                privacy: $data['privacy'] ?? true,
+                idempotencyKey: $data['idempotency_key'] ?? null,
+            );
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return response()->json([
+            'domain' => [
+                'id' => $purchase['domain']->uuid,
+                'name' => $purchase['domain']->name,
+                'status' => $purchase['domain']->status,
+            ],
+            'checkout' => [
+                'id' => $purchase['checkout']->uuid,
+                'status' => $purchase['checkout']->status,
+                'currency' => $purchase['checkout']->currency,
+                'amount_minor' => $purchase['checkout']->amount_minor,
+                'provider' => 'paypal',
+                'approval_url' => $purchase['approval_url'],
+                'expires_at' => $purchase['checkout']->expires_at,
+            ],
+        ], 201);
+    }
+
+    public function domainStatus(Request $request, string $uuid): JsonResponse
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+        $team = currentTeam();
+        abort_unless($team, 403, 'Select a team before viewing a domain.');
+
+        $domain = OneployDomain::query()
+            ->with('dnsZone')
+            ->where('team_id', $team->id)
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+
+        return response()->json([
+            'id' => $domain->uuid,
+            'name' => $domain->name,
+            'status' => $domain->status,
+            'registrar' => $domain->registrar,
+            'expires_at' => $domain->expires_at,
+            'nameservers' => $domain->nameservers,
+            'dns_active' => $domain->dnsZone?->status === 'active',
+            'action_required' => $domain->status === 'manual_review' ? $domain->last_error : null,
         ]);
     }
 

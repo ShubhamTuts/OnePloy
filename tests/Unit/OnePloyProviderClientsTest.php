@@ -8,14 +8,14 @@ use Tests\TestCase;
 
 uses(TestCase::class);
 
-test('ConnectReseller availability uses the documented read-only endpoint without guessing success', function () {
-    config()->set('oneploy.domains.connectreseller_api_url', 'https://api.connectreseller.test/ConnectReseller/dc');
+test('ConnectReseller availability uses the official v11 ESHOP endpoint', function () {
+    config()->set('oneploy.domains.connectreseller_api_url', 'https://api.connectreseller.test/ConnectReseller/ESHOP');
     config()->set('oneploy.domains.connectreseller_api_key', 'registrar-key');
     Http::preventStrayRequests();
     Http::fake([
-        '*/domains/checkDomainAvailability' => Http::response([
-            'responseData' => ['available' => true],
-            'message' => 'Available',
+        '*/checkdomainavailable*' => Http::response([
+            'responseMsg' => ['statusCode' => 200, 'message' => 'Available'],
+            'responseData' => ['available' => true, 'isPremium' => false],
         ]),
     ]);
 
@@ -23,11 +23,10 @@ test('ConnectReseller availability uses the documented read-only endpoint withou
 
     expect($result['available'])->toBeTrue();
     Http::assertSent(function (Request $request): bool {
-        return $request->method() === 'POST'
-            && str_ends_with($request->url(), '/domains/checkDomainAvailability')
-            && $request['apiKey'] === 'registrar-key'
-            && $request['websiteName'] === 'launch'
-            && $request['extension'] === '.co.in';
+        return $request->method() === 'GET'
+            && str_ends_with(parse_url($request->url(), PHP_URL_PATH), '/checkdomainavailable')
+            && $request['APIKey'] === 'registrar-key'
+            && $request['websiteName'] === 'launch.co.in';
     });
 });
 

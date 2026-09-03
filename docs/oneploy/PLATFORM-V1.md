@@ -1,6 +1,6 @@
 # OnePloy Platform V1
 
-Status date: 2026-09-02
+Status date: 2026-09-03
 
 This document is the product and architecture contract for OnePloy V1. It records both the intended platform and the verified implementation boundary. A listed capability is not automatically shipped: the status labels below are authoritative and must be updated only when persistence, authorization, application logic, operations, recovery, and tests exist.
 
@@ -43,7 +43,7 @@ Customer-facing identity must use OnePloy branding, links, documentation, suppor
 | Static plan and quota behavior | PARTIAL | Migrate compatibly to persisted, versioned products and generic entitlements. |
 | Commerce, provider-neutral billing, and usage ledger | PARTIAL | Catalog, checkout, signed Stripe/Razorpay success events, orders, invoices, payments, subscriptions, wallets, and usage persistence exist; refunds, tax, dunning, reconciliation, and live-provider acceptance remain. |
 | Compute pools and managed placement | PLANNED | Extend `Server` with pools, capacity snapshots, reservations, decisions, and drain state. |
-| Domains, registrar integration, and authoritative DNS orchestration | PLANNED | Use provider-neutral contracts; ConnectReseller and PowerDNS are initial adapters. |
+| Domains, registrar integration, and authoritative DNS orchestration | PARTIAL | Availability, consented paid ConnectReseller registration, encrypted contacts, lifecycle safety, Storefront API, and bundled PowerDNS are shipped; renewals, transfers, registrar locks, secondary authoritative DNS, and live-provider acceptance remain. |
 | Managed WordPress, games, n8n, and AI applications | PARTIAL | Keep deployable templates; certify and productize only tested managed workflows. |
 | AI Gateway and admin AI | PLANNED | Provider-neutral routing with budgets, versioned cost, redaction, and policy approvals. |
 | OnePloy-owned installer, release artifacts, and updater | PARTIAL | The Ubuntu source-build installer and backup-gated updater are owned here; blank-VPS acceptance and signed multi-architecture artifacts remain release gates. |

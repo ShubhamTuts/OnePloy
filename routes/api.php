@@ -49,6 +49,8 @@ Route::prefix('storefront/v1')->middleware('throttle:60,1')->group(function () {
     Route::get('/catalogue', [StorefrontController::class, 'catalogue']);
     Route::get('/applications', [StorefrontController::class, 'applications']);
     Route::get('/domains/search', [StorefrontController::class, 'domainSearch']);
+    Route::post('/domains/checkout', [StorefrontController::class, 'domainCheckout'])->middleware(['auth:sanctum']);
+    Route::get('/domains/{uuid}', [StorefrontController::class, 'domainStatus'])->middleware(['auth:sanctum']);
     Route::get('/status', [StorefrontController::class, 'status']);
     Route::get('/checkout/{uuid}', [StorefrontController::class, 'checkoutStatus'])->middleware(['auth:sanctum']);
     Route::post('/checkout', [StorefrontController::class, 'checkout'])->middleware(['auth:sanctum']);

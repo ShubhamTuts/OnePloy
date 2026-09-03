@@ -30,6 +30,12 @@ class OneployDomain extends Model
         'expires_at',
         'nameservers',
         'contacts',
+        'contact_payload',
+    ];
+
+    protected $hidden = [
+        'contacts',
+        'contact_payload',
     ];
 
     protected $attributes = [
@@ -52,6 +58,7 @@ class OneployDomain extends Model
             'provisioning_attempts' => 'integer',
             'nameservers' => 'array',
             'contacts' => 'array',
+            'contact_payload' => 'encrypted:array',
         ];
     }
 

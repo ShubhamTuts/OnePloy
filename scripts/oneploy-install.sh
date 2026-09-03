@@ -24,6 +24,7 @@ SKIP_HELPER="${SKIP_HELPER:-false}"
 ROOT_USERNAME="${ROOT_USERNAME:-}"
 ROOT_USER_EMAIL="${ROOT_USER_EMAIL:-}"
 ROOT_USER_PASSWORD="${ROOT_USER_PASSWORD:-}"
+NAMESERVERS="${ONEPLOY_NAMESERVERS:-}"
 
 on_error() {
     echo "OnePloy installation stopped at line ${1}. Review the message above before retrying."
@@ -40,6 +41,7 @@ Options:
   --repo URL           Git repository to clone (default: https://github.com/ShubhamTuts/OnePloy.git)
   --branch NAME        Git branch (default: main)
   --port N             Dashboard HTTP port before SSL (default: 8000)
+  --nameservers CSV    Two or more authoritative hostnames (example: ns1.example.com,ns2.example.com)
   --skip-helper        Skip building the deploy helper image (not recommended)
   -h, --help           Show this help
 
@@ -56,6 +58,7 @@ while [ $# -gt 0 ]; do
         --repo) ONEPLOY_REPO="${2:-}"; shift 2 ;;
         --branch) ONEPLOY_BRANCH="${2:-}"; shift 2 ;;
         --port) APP_PORT="${2:-}"; shift 2 ;;
+        --nameservers) NAMESERVERS="${2:-}"; shift 2 ;;
         --skip-helper) SKIP_HELPER=true; shift ;;
         -h|--help) usage; exit 0 ;;
         *) echo "Unknown argument: $1"; usage; exit 1 ;;
@@ -81,6 +84,19 @@ fi
 if ! printf '%s' "$APP_PORT" | grep -Eq '^[0-9]+$' || [ "$APP_PORT" -lt 1 ] || [ "$APP_PORT" -gt 65535 ]; then
     echo "Invalid --port value: $APP_PORT"
     exit 1
+fi
+if [ -n "$NAMESERVERS" ]; then
+    IFS=',' read -r -a nameserver_values <<<"$NAMESERVERS"
+    if [ "${#nameserver_values[@]}" -lt 2 ]; then
+        echo "--nameservers requires at least two comma-separated hostnames."
+        exit 1
+    fi
+    for nameserver in "${nameserver_values[@]}"; do
+        if ! printf '%s' "$nameserver" | grep -Eq '^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$'; then
+            echo "Invalid nameserver hostname: $nameserver"
+            exit 1
+        fi
+    done
 fi
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"; }
@@ -109,6 +125,7 @@ echo "Install dir: ${ONEPLOY_DIR}"
 echo "Data dir:    ${DATA_DIR} (legacy path kept for engine compatibility)"
 echo "FQDN:        ${FQDN:-not set — HTTP on :${APP_PORT} only}"
 echo "Email:       ${EMAIL:-not set}"
+echo "Nameservers: ${NAMESERVERS:-not set — domain checkout remains gated}"
 
 OS_ID="$(. /etc/os-release; echo "${ID:-unknown}")"
 OS_VERSION="$(. /etc/os-release; echo "${VERSION_ID:-unknown}")"
@@ -271,6 +288,10 @@ set_env REDIS_PASSWORD "$(rand_b64)"
 set_env PUSHER_APP_ID "$(rand_hex 16)"
 set_env PUSHER_APP_KEY "$(rand_hex 16)"
 set_env PUSHER_APP_SECRET "$(rand_hex 16)"
+set_env POWERDNS_IMAGE "powerdns/pdns-auth-50:5.0.7"
+set_env POWERDNS_API_URL "http://powerdns:8081"
+set_env POWERDNS_API_KEY "$(rand_b64)"
+set_env POWERDNS_SERVER_ID "localhost"
 force_env APP_PORT "$APP_PORT"
 force_env APP_NAME "OnePloy"
 force_env APP_ENV "production"
@@ -301,12 +322,13 @@ fi
 if [ -n "$ROOT_USERNAME" ]; then force_env ROOT_USERNAME "$ROOT_USERNAME"; fi
 if [ -n "$ROOT_USER_EMAIL" ]; then force_env ROOT_USER_EMAIL "$ROOT_USER_EMAIL"; fi
 if [ -n "$ROOT_USER_PASSWORD" ]; then force_env ROOT_USER_PASSWORD "$ROOT_USER_PASSWORD"; fi
+if [ -n "$NAMESERVERS" ]; then force_env ONEPLOY_NAMESERVERS "$NAMESERVERS"; fi
 
 OPTIONAL_CONFIGURATION_KEYS=(
     PAYPAL_CLIENT_ID PAYPAL_SECRET PAYPAL_WEBHOOK_ID PAYPAL_MODE PAYPAL_BASE_URL
     CONNECTRESELLER_API_URL CONNECTRESELLER_API_KEY CONNECTRESELLER_BRAND_ID
     ONEPLOY_DOMAIN_PRICES ONEPLOY_DOMAIN_CURRENCY ONEPLOY_DOMAIN_MARKUP_PERCENT
-    POWERDNS_API_URL POWERDNS_API_KEY POWERDNS_SERVER_ID ONEPLOY_NAMESERVERS POWERDNS_DNSSEC
+    POWERDNS_IMAGE POWERDNS_API_URL POWERDNS_API_KEY POWERDNS_SERVER_ID ONEPLOY_NAMESERVERS POWERDNS_DNSSEC
 )
 for optional_key in "${OPTIONAL_CONFIGURATION_KEYS[@]}"; do
     optional_value="${!optional_key:-}"
@@ -403,6 +425,12 @@ Firewall: allow your SSH port and ${APP_PORT}. Add --fqdn for automatic HTTPS.
 EOF
 fi
 
+if [ -n "$NAMESERVERS" ]; then
+    echo "PowerDNS: listening on TCP/UDP 53 for ${NAMESERVERS}. Create host/glue records at your registrar."
+else
+    echo "PowerDNS: running, but domain checkout stays gated until ONEPLOY_NAMESERVERS contains at least two delegated hostnames."
+fi
+
 cat <<EOF
 
 First login: open the dashboard and create the root user unless ROOT_USER_* was provided.
@@ -412,5 +440,6 @@ Upgrade later:
 Keep a backup of ${ENV_FILE} off this server.
 
 Logs: docker logs -f coolify
+Authoritative DNS: docker logs -f oneploy-powerdns
 ============================================================
 EOF

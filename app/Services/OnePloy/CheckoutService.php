@@ -2,8 +2,10 @@
 
 namespace App\Services\OnePloy;
 
+use App\Jobs\OnePloy\ProvisionDomainJob;
 use App\Models\OneployCheckoutSession;
 use App\Models\OneployCommerceSubscription;
+use App\Models\OneployDomain;
 use App\Models\OneployInvoice;
 use App\Models\OneployOrder;
 use App\Models\OneployPayment;
@@ -130,7 +132,7 @@ class CheckoutService
 
     public function markPaid(OneployCheckoutSession $session, string $provider, string $providerReference, array $raw = []): OneployOrder
     {
-        return DB::transaction(function () use ($session, $provider, $providerReference, $raw) {
+        $order = DB::transaction(function () use ($session, $provider, $providerReference, $raw) {
             $session = OneployCheckoutSession::query()->whereKey($session->id)->lockForUpdate()->firstOrFail();
             if ($session->status === 'paid') {
                 return OneployOrder::query()->where('checkout_session_id', $session->id)->firstOrFail();
@@ -218,6 +220,10 @@ class CheckoutService
 
             return $order;
         });
+
+        $this->queuePaidDomainRegistrations($session->id);
+
+        return $order;
     }
 
     public function recordWebhook(string $provider, string $eventId, array $payload): OneployPaymentWebhookEvent
@@ -241,6 +247,29 @@ class CheckoutService
             || $payment['status'] !== 'COMPLETED'
         ) {
             throw new RuntimeException('The authoritative payment does not match this checkout.');
+        }
+    }
+
+    private function queuePaidDomainRegistrations(int $checkoutSessionId): void
+    {
+        $domainIds = DB::transaction(function () use ($checkoutSessionId): array {
+            OneployDomain::query()
+                ->where('checkout_session_id', $checkoutSessionId)
+                ->where('status', 'pending_payment')
+                ->update([
+                    'status' => 'pending_registration',
+                    'last_error' => null,
+                ]);
+
+            return OneployDomain::query()
+                ->where('checkout_session_id', $checkoutSessionId)
+                ->where('status', 'pending_registration')
+                ->pluck('id')
+                ->all();
+        });
+
+        foreach ($domainIds as $domainId) {
+            ProvisionDomainJob::dispatch($domainId)->afterCommit();
         }
     }
 }

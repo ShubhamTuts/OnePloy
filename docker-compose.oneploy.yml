@@ -39,6 +39,8 @@ services:
         condition: service_healthy
       soketi:
         condition: service_healthy
+      powerdns:
+        condition: service_healthy
   postgres:
     volumes:
       - coolify-db:/var/lib/postgresql/data
@@ -81,12 +83,33 @@ services:
       interval: 5s
       retries: 10
       timeout: 2s
+  powerdns:
+    image: "${POWERDNS_IMAGE:-powerdns/pdns-auth-50:5.0.7}"
+    container_name: oneploy-powerdns
+    restart: always
+    networks:
+      - coolify
+    environment:
+      PDNS_AUTH_API_KEY: "${POWERDNS_API_KEY}"
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    volumes:
+      - oneploy-powerdns:/var/lib/powerdns
+    healthcheck:
+      test: [ "CMD", "pdns_control", "ping" ]
+      interval: 5s
+      retries: 20
+      start_period: 15s
+      timeout: 3s
 
 volumes:
   coolify-db:
     name: coolify-db
   coolify-redis:
     name: coolify-redis
+  oneploy-powerdns:
+    name: oneploy-powerdns
 
 networks:
   coolify:

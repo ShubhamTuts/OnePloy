@@ -25,7 +25,7 @@ return [
     ],
 
     'domains' => [
-        'connectreseller_api_url' => env('CONNECTRESELLER_API_URL', 'https://api.connectreseller.com/ConnectReseller/dc'),
+        'connectreseller_api_url' => env('CONNECTRESELLER_API_URL', 'https://api.connectreseller.com/ConnectReseller/ESHOP'),
         'connectreseller_api_key' => env('CONNECTRESELLER_API_KEY'),
         'connectreseller_brand_id' => env('CONNECTRESELLER_BRAND_ID'),
         'retail_prices' => json_decode((string) env('ONEPLOY_DOMAIN_PRICES', '{}'), true) ?: [],

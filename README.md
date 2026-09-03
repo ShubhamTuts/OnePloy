@@ -14,7 +14,7 @@ Point `app.oneploy.dev` (or your hostname) at the VPS, then:
 curl -fsSL https://raw.githubusercontent.com/ShubhamTuts/OnePloy/main/scripts/oneploy-install.sh | sudo bash -s -- --fqdn app.oneploy.dev --email admin@oneploy.dev
 ```
 
-This builds OnePloy from source on the server (not CoolLabs images) and enables HTTPS through the inherited Traefik proxy once DNS is live. Full notes: [docs/oneploy/INSTALL.md](docs/oneploy/INSTALL.md).
+This builds OnePloy from source, starts its open-source PostgreSQL, Redis, realtime, PowerDNS, and Traefik stack, and enables Let's Encrypt HTTPS once DNS is live. No paid control-panel or infrastructure software license is required. Full notes: [docs/oneploy/INSTALL.md](docs/oneploy/INSTALL.md).
 
 ## Current foundation
 
@@ -26,6 +26,7 @@ OnePloy is being developed as a modular Laravel control plane on top of the matu
 - Reseller-owned tenants, lifecycle states, plan assignment, per-tenant quotas, and reseller aggregate quota fields.
 - Atomic reseller tenant creation with ownership attribution, default-plan assignment, capacity locking, and audit events.
 - Suspended-tenant enforcement for resource creation plus application and service deployment entry points.
+- PayPal checkout, encrypted ConnectReseller domain registration, customer invoices/status, and bundled authoritative PowerDNS orchestration.
 - Fork-safe defaults: upstream telemetry and update installation are disabled, and inherited publishing workflows are archived outside GitHub's active workflow directory.
 
 See [the OnePloy delivery roadmap](docs/oneploy/ROADMAP.md) for the implemented/pending boundary.
