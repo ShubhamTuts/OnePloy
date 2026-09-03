@@ -1,6 +1,6 @@
 # OnePloy delivery roadmap
 
-Status date: 2026-09-02
+Status date: 2026-09-03
 
 This roadmap tracks delivery against the [OnePloy Platform V1](PLATFORM-V1.md) product and architecture contract.
 
@@ -20,17 +20,21 @@ OnePloy remains a modular Laravel control plane. A dedicated management node own
 - Database-backed product/plan/price catalog, checkout sessions, payment webhook inbox, domain records, compute-pool tables, marketplace metadata.
 - Customer nav additions: Marketplace, Domains, Usage, Billing.
 - Public Storefront API: `GET /api/storefront/v1/catalogue`.
+- PayPal Orders v2 checkout with server-side capture, PayPal webhook verification, strict checkout/amount/currency binding, replay protection, and five-minute reconciliation.
+- Product-scoped subscriptions so a second product purchase does not overwrite an existing app-hosting subscription.
+- ConnectReseller read-only domain availability through the production API path.
+- PowerDNS authoritative zone adapter and tenant-scoped activation for registered domains.
 
 ## Still required before calling the business “fully live”
 
+- Live PayPal credentials, production webhook registration, and provider acceptance transaction (**external**).
 - Live Stripe/Razorpay keys and signed-webhook acceptance against real provider events (**external**).
-- PayPal checkout, server-to-server webhook verification, and reconciliation (**planned**).
-- ConnectReseller production key + IP allowlist for paid domain registration (**external**).
-- PowerDNS nameserver fleet for authoritative DNS (**external**).
+- ConnectReseller production key, Brand ID, funded balance, source-IP allowlist, explicit registrant-data authorization, and live purchase acceptance (**external**).
+- PowerDNS nameserver fleet, API key, registrar glue, delegation, and live failover acceptance (**external**).
 - GHCR multi-arch signed release channel (today: build-on-VPS).
 - Deeper managed-app runbooks (WordPress/Minecraft/n8n) on top of existing templates.
 - Cross-tenant negative test suite in CI.
 
 ## Release gates
 
-The control plane can be installed and used for Git/Docker/Compose hosting after the Ubuntu installer and HTTPS health gate succeed. Charging cards, registering domains at the registrar, and serving DNS remain gated on provider configuration and live acceptance.
+The control plane can be installed and used for Git/Docker/Compose hosting after the Ubuntu installer and HTTPS health gate succeed. PayPal checkout and PowerDNS zone orchestration are repository-complete at the stated boundary, but charging customers and serving public authoritative DNS remain gated on credentials and live acceptance. ConnectReseller purchases remain gated on explicit authorization for the registrant-data transfer and provider acceptance.

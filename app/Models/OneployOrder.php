@@ -29,4 +29,9 @@ class OneployOrder extends Model
     {
         return $this->belongsTo(Team::class);
     }
+
+    public function checkoutSession(): BelongsTo
+    {
+        return $this->belongsTo(OneployCheckoutSession::class, 'checkout_session_id');
+    }
 }

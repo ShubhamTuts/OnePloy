@@ -9,6 +9,7 @@ use App\Jobs\CheckTraefikVersionJob;
 use App\Jobs\CleanupInstanceStuffsJob;
 use App\Jobs\CleanupOrphanedPreviewContainersJob;
 use App\Jobs\CleanupStaleMultiplexedConnections;
+use App\Jobs\OnePloy\ReconcilePaymentsJob;
 use App\Jobs\PullChangelog;
 use App\Jobs\PullTemplatesFromCDN;
 use App\Jobs\RegenerateSslCertJob;
@@ -52,6 +53,10 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping(60);
         $this->scheduleInstance->command('sanctum:prune-expired --hours=1')->hourly()->onOneServer();
         $this->scheduleInstance->job(new ApiTokenExpirationWarningJob)->hourly()->onOneServer();
+        $this->scheduleInstance->job(new ReconcilePaymentsJob)
+            ->everyFiveMinutes()
+            ->onOneServer()
+            ->withoutOverlapping(4);
 
         if (isDev()) {
             // Instance Jobs

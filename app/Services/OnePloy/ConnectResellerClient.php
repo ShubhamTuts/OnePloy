@@ -4,13 +4,19 @@ namespace App\Services\OnePloy;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class ConnectResellerClient
 {
+    public function isConfigured(): bool
+    {
+        return filled(config('oneploy.domains.connectreseller_api_url'))
+            && filled(config('oneploy.domains.connectreseller_api_key'));
+    }
+
     public function availability(string $domain): array
     {
-        $apiKey = config('oneploy.domains.connectreseller_api_key');
-        if (blank($apiKey)) {
+        if (! $this->isConfigured()) {
             return [
                 'domain' => $domain,
                 'available' => null,
@@ -19,16 +25,33 @@ class ConnectResellerClient
             ];
         }
 
-        $response = Http::timeout(20)->get(rtrim((string) config('oneploy.domains.connectreseller_api_url'), '/').'/checkdomain', [
-            'APIKey' => $apiKey,
-            'domainName' => $domain,
-        ]);
+        [$websiteName, $extension] = explode('.', strtolower($domain), 2);
+        $response = Http::baseUrl(rtrim((string) config('oneploy.domains.connectreseller_api_url'), '/'))
+            ->acceptJson()
+            ->asJson()
+            ->timeout(20)
+            ->connectTimeout(5)
+            ->retry([200, 500, 1000], throw: false)
+            ->post('/domains/checkDomainAvailability', [
+                'apiKey' => (string) config('oneploy.domains.connectreseller_api_key'),
+                'websiteName' => $websiteName,
+                'extension' => '.'.$extension,
+            ]);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('ConnectReseller availability request failed with HTTP '.$response->status().'.');
+        }
+
+        $available = data_get($response->json(), 'responseData.available')
+            ?? data_get($response->json(), 'responseData.isAvailable')
+            ?? data_get($response->json(), 'available');
 
         return [
             'domain' => $domain,
-            'available' => $response->json('available', $response->successful()),
+            'available' => is_bool($available) ? $available : null,
             'source' => 'connectreseller',
             'raw_status' => $response->status(),
+            'message' => is_string($response->json('message')) ? $response->json('message') : null,
         ];
     }
 

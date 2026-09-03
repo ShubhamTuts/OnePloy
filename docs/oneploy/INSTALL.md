@@ -61,13 +61,25 @@ sudo bash /data/coolify/source/oneploy-upgrade.sh
 
 This pulls git, rebuilds OnePloy images, dumps the control-plane database, and restarts. It never contacts CoolLabs.
 
-## Payment, domains, email (external)
+## PayPal, domains, authoritative DNS, and email
 
-The panel works without these. Live checkout, domain purchase, and mail need keys in `/data/coolify/source/.env` and a stack restart:
+The hosting control plane works without commerce credentials. Before exposing paid checkout, edit `/data/coolify/source/.env` and configure:
 
-- `STRIPE_SECRET`, `STRIPE_WEBHOOK_SECRET`
-- `RAZORPAY_KEY`, `RAZORPAY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`
-- `CONNECTRESELLER_API_KEY`
+- `PAYPAL_MODE=live`, `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, and `PAYPAL_WEBHOOK_ID`
+- PayPal webhook URL: `https://app.oneploy.dev/webhooks/payments/paypal/oneploy`
+- Subscribe the PayPal webhook to `PAYMENT.CAPTURE.COMPLETED`; reconciliation also checks approved or completed orders every five minutes.
+- `CONNECTRESELLER_API_KEY` and `CONNECTRESELLER_BRAND_ID`; allowlist the control-plane public IP in ConnectReseller.
+- `POWERDNS_API_URL`, `POWERDNS_API_KEY`, `POWERDNS_SERVER_ID`, and at least two comma-separated `ONEPLOY_NAMESERVERS`.
+- Delegate the nameserver hostnames and create registrar glue records before assigning them to customer domains.
 - SMTP settings in the dashboard **Settings → Email**
 
-Stripe and Razorpay webhook signatures, event allowlists, payment amount/currency matching, and tenant ownership must pass before orders, invoices, payments, or subscriptions are activated. PayPal capture is intentionally not exposed until server-to-server verification and reconciliation are implemented.
+Then restart the stack:
+
+```bash
+cd /data/coolify/source
+sudo docker compose --env-file .env -f docker-compose.yml -f docker-compose.oneploy.yml up -d
+```
+
+The PayPal browser return is never treated as payment proof. OnePloy captures server-to-server, verifies webhook signatures through PayPal, checks checkout ownership, amount and currency, prevents replay, and reconciles missed returns. PowerDNS zones can be activated only for a registered domain owned by the current team.
+
+ConnectReseller availability uses its read-only availability endpoint. Automatic registration remains disabled until the operator explicitly authorizes sending registrant contact data to ConnectReseller and validates the provider's live account, balance, Brand ID, source-IP allowlist, supported TLDs, and pricing.

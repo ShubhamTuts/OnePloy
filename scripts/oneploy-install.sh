@@ -229,9 +229,15 @@ fi
 set_env() {
     local key="$1"
     local value="$2"
+    local escaped_value
+    if [[ "$value" == *$'\n'* || "$value" == *$'\r'* ]]; then
+        echo "Environment value for ${key} must not contain a newline."
+        exit 1
+    fi
+    escaped_value="$(printf '%s' "$value" | sed 's/[\\&|]/\\&/g')"
     if grep -q "^${key}=$" "$ENV_FILE" || ! grep -q "^${key}=" "$ENV_FILE"; then
         if grep -q "^${key}=" "$ENV_FILE"; then
-            sed -i "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+            sed -i "s|^${key}=.*|${key}=${escaped_value}|" "$ENV_FILE"
         else
             printf '%s=%s\n' "$key" "$value" >>"$ENV_FILE"
         fi
@@ -241,8 +247,14 @@ set_env() {
 force_env() {
     local key="$1"
     local value="$2"
+    local escaped_value
+    if [[ "$value" == *$'\n'* || "$value" == *$'\r'* ]]; then
+        echo "Environment value for ${key} must not contain a newline."
+        exit 1
+    fi
+    escaped_value="$(printf '%s' "$value" | sed 's/[\\&|]/\\&/g')"
     if grep -q "^${key}=" "$ENV_FILE"; then
-        sed -i "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+        sed -i "s|^${key}=.*|${key}=${escaped_value}|" "$ENV_FILE"
     else
         printf '%s=%s\n' "$key" "$value" >>"$ENV_FILE"
     fi
@@ -289,6 +301,19 @@ fi
 if [ -n "$ROOT_USERNAME" ]; then force_env ROOT_USERNAME "$ROOT_USERNAME"; fi
 if [ -n "$ROOT_USER_EMAIL" ]; then force_env ROOT_USER_EMAIL "$ROOT_USER_EMAIL"; fi
 if [ -n "$ROOT_USER_PASSWORD" ]; then force_env ROOT_USER_PASSWORD "$ROOT_USER_PASSWORD"; fi
+
+OPTIONAL_CONFIGURATION_KEYS=(
+    PAYPAL_CLIENT_ID PAYPAL_SECRET PAYPAL_WEBHOOK_ID PAYPAL_MODE PAYPAL_BASE_URL
+    CONNECTRESELLER_API_URL CONNECTRESELLER_API_KEY CONNECTRESELLER_BRAND_ID
+    ONEPLOY_DOMAIN_PRICES ONEPLOY_DOMAIN_CURRENCY ONEPLOY_DOMAIN_MARKUP_PERCENT
+    POWERDNS_API_URL POWERDNS_API_KEY POWERDNS_SERVER_ID ONEPLOY_NAMESERVERS POWERDNS_DNSSEC
+)
+for optional_key in "${OPTIONAL_CONFIGURATION_KEYS[@]}"; do
+    optional_value="${!optional_key:-}"
+    if [ -n "$optional_value" ]; then
+        force_env "$optional_key" "$optional_value"
+    fi
+done
 
 chown -R 9999:root "${DATA_DIR}" || true
 chmod 700 "$ENV_FILE"

@@ -22,6 +22,11 @@ class OneployCommerceSubscription extends Model
         return $this->belongsTo(Team::class);
     }
 
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(OneployProduct::class, 'product_id');
+    }
+
     public function planVersion(): BelongsTo
     {
         return $this->belongsTo(OneployPlanVersion::class, 'plan_version_id');

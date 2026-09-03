@@ -11,9 +11,12 @@ use App\Models\OneployPaymentWebhookEvent;
 use App\Models\OneployPrice;
 use App\Models\Team;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class CheckoutService
 {
+    public function __construct(private readonly PayPalClient $payPal) {}
+
     public function create(array $payload, Team $team, ?int $userId = null): OneployCheckoutSession
     {
         $price = OneployPrice::query()
@@ -68,12 +71,82 @@ class CheckoutService
         ]);
     }
 
+    public function startPayPal(OneployCheckoutSession $session, string $returnUrl, string $cancelUrl): string
+    {
+        if ($session->status === 'paid') {
+            throw new RuntimeException('This checkout has already been paid.');
+        }
+        if ($session->expires_at?->isPast()) {
+            $session->update(['status' => 'expired']);
+
+            throw new RuntimeException('This checkout has expired.');
+        }
+
+        if ($session->provider === 'paypal' && filled($session->approval_url) && filled($session->provider_reference)) {
+            return $session->approval_url;
+        }
+
+        $order = $this->payPal->createOrder($session, $returnUrl, $cancelUrl);
+        $session->update([
+            'status' => 'pending_provider',
+            'provider' => 'paypal',
+            'provider_reference' => $order['id'],
+            'approval_url' => $order['approval_url'],
+            'failure_reason' => null,
+            'provider_payload' => [
+                'order_id' => $order['id'],
+                'status' => $order['status'],
+            ],
+        ]);
+
+        return $order['approval_url'];
+    }
+
+    public function completePayPal(OneployCheckoutSession $session, string $orderId): OneployOrder
+    {
+        if ($session->provider !== 'paypal' || ! hash_equals((string) $session->provider_reference, $orderId)) {
+            throw new RuntimeException('PayPal order does not belong to this checkout.');
+        }
+
+        if ($session->status === 'paid') {
+            return OneployOrder::query()->where('checkout_session_id', $session->id)->firstOrFail();
+        }
+
+        $capture = $this->payPal->captureOrder($orderId);
+        $payment = $this->payPal->paymentData($capture);
+        $this->assertPaymentMatches($session, $payment);
+
+        return $this->markPaid(
+            $session,
+            'paypal',
+            (string) $payment['provider_reference'],
+            [
+                'event_id' => $orderId,
+                'event_type' => 'PAYPAL.ORDER.CAPTURE',
+                'order_status' => $payment['status'],
+            ],
+        );
+    }
+
     public function markPaid(OneployCheckoutSession $session, string $provider, string $providerReference, array $raw = []): OneployOrder
     {
         return DB::transaction(function () use ($session, $provider, $providerReference, $raw) {
             $session = OneployCheckoutSession::query()->whereKey($session->id)->lockForUpdate()->firstOrFail();
             if ($session->status === 'paid') {
                 return OneployOrder::query()->where('checkout_session_id', $session->id)->firstOrFail();
+            }
+
+            $existingPayment = OneployPayment::query()
+                ->with('invoice.order')
+                ->where('provider', $provider)
+                ->where('provider_reference', $providerReference)
+                ->first();
+            if ($existingPayment) {
+                if ($existingPayment->invoice?->order?->checkout_session_id === $session->id) {
+                    return $existingPayment->invoice->order;
+                }
+
+                throw new RuntimeException('This provider payment was already applied to another checkout.');
             }
 
             $session->update([
@@ -119,7 +192,10 @@ class CheckoutService
             $price = OneployPrice::query()->with('planVersion.plan.product')->find($priceId);
             if ($price && $session->team_id) {
                 OneployCommerceSubscription::updateOrCreate(
-                    ['team_id' => $session->team_id],
+                    [
+                        'team_id' => $session->team_id,
+                        'product_id' => $price->planVersion?->plan?->product_id,
+                    ],
                     [
                         'plan_version_id' => $price->plan_version_id,
                         'price_id' => $price->id,
@@ -150,5 +226,21 @@ class CheckoutService
             ['provider' => $provider, 'provider_event_id' => $eventId],
             ['status' => 'received', 'payload' => $payload]
         );
+    }
+
+    /**
+     * @param  array{checkout_uuid: ?string, provider_reference: ?string, amount_minor: ?int, currency: ?string, status: string}  $payment
+     */
+    public function assertPaymentMatches(OneployCheckoutSession $session, array $payment): void
+    {
+        if (
+            $payment['checkout_uuid'] !== $session->uuid
+            || $payment['provider_reference'] === null
+            || $payment['amount_minor'] !== $session->amount_minor
+            || $payment['currency'] !== strtoupper($session->currency)
+            || $payment['status'] !== 'COMPLETED'
+        ) {
+            throw new RuntimeException('The authoritative payment does not match this checkout.');
+        }
     }
 }

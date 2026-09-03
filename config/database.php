@@ -1,7 +1,16 @@
 <?php
 
 use Illuminate\Support\Str;
-use Pdo\Pgsql;
+
+$pgsqlOptions = [];
+$disablePreparesAttribute = match (true) {
+    defined('Pdo\\Pgsql::ATTR_DISABLE_PREPARES') => constant('Pdo\\Pgsql::ATTR_DISABLE_PREPARES'),
+    defined('PDO::PGSQL_ATTR_DISABLE_PREPARES') => constant('PDO::PGSQL_ATTR_DISABLE_PREPARES'),
+    default => null,
+};
+if ($disablePreparesAttribute !== null) {
+    $pgsqlOptions[$disablePreparesAttribute] = env('DB_DISABLE_PREPARES', false);
+}
 
 $parseDatabaseHosts = function (mixed $hosts, mixed $fallback = 'coolify-db'): array {
     $parsedHosts = array_values(array_filter(
@@ -34,9 +43,7 @@ $pgsql = [
     'prefix_indexes' => true,
     'search_path' => 'public',
     'sslmode' => 'prefer',
-    'options' => [
-        (defined('Pdo\Pgsql::ATTR_DISABLE_PREPARES') ? Pgsql::ATTR_DISABLE_PREPARES : PDO::PGSQL_ATTR_DISABLE_PREPARES) => env('DB_DISABLE_PREPARES', false),
-    ],
+    'options' => $pgsqlOptions,
 ];
 
 /*

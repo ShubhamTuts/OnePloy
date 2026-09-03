@@ -9,6 +9,8 @@ use UnexpectedValueException;
 
 class PaymentWebhookVerifier
 {
+    public function __construct(private readonly PayPalClient $payPal) {}
+
     /**
      * @return array{event_id: string, provider_reference: string, checkout_uuid: ?string, amount_minor: ?int, currency: ?string, is_payment_success: bool, audit_payload: array<string, mixed>}|null
      */
@@ -17,8 +19,51 @@ class PaymentWebhookVerifier
         return match ($provider) {
             'stripe' => $this->verifyStripe($request),
             'razorpay' => $this->verifyRazorpay($request),
+            'paypal' => $this->verifyPayPal($request),
             default => null,
         };
+    }
+
+    /**
+     * @return array{event_id: string, provider_reference: string, checkout_uuid: ?string, amount_minor: ?int, currency: ?string, is_payment_success: bool, audit_payload: array<string, mixed>}|null
+     */
+    private function verifyPayPal(Request $request): ?array
+    {
+        if (! $this->payPal->verifyWebhook($request)) {
+            return null;
+        }
+
+        $payload = json_decode($request->getContent(), true);
+        if (! is_array($payload)) {
+            return null;
+        }
+
+        $eventId = data_get($payload, 'id');
+        $eventType = (string) data_get($payload, 'event_type', '');
+        $resource = (array) data_get($payload, 'resource', []);
+        if (! is_string($eventId) || $eventId === '') {
+            return null;
+        }
+
+        $checkoutUuid = data_get($resource, 'custom_id') ?? data_get($resource, 'invoice_id');
+        $orderId = data_get($resource, 'supplementary_data.related_ids.order_id');
+        if (! is_string($checkoutUuid) && is_string($orderId) && $orderId !== '') {
+            $payment = $this->payPal->paymentData($this->payPal->order($orderId));
+            $checkoutUuid = $payment['checkout_uuid'];
+        }
+
+        return $this->normalized(
+            provider: 'paypal',
+            eventId: $eventId,
+            eventType: $eventType,
+            providerReference: (string) (data_get($resource, 'id') ?: $orderId ?: $eventId),
+            checkoutUuid: is_string($checkoutUuid) ? $checkoutUuid : null,
+            amountMinor: $this->paypalMinorAmount(data_get($resource, 'amount.value')),
+            currency: $this->currencyOrNull(data_get($resource, 'amount.currency_code')),
+            isPaymentSuccess: $eventType === 'PAYMENT.CAPTURE.COMPLETED'
+                && strtoupper((string) data_get($resource, 'status', '')) === 'COMPLETED',
+            paymentStatus: (string) data_get($resource, 'status', ''),
+        );
     }
 
     /**
@@ -150,5 +195,10 @@ class PaymentWebhookVerifier
     private function currencyOrNull(mixed $value): ?string
     {
         return is_string($value) && strlen($value) === 3 ? strtoupper($value) : null;
+    }
+
+    private function paypalMinorAmount(mixed $value): ?int
+    {
+        return is_numeric($value) ? (int) round((float) $value * 100) : null;
     }
 }

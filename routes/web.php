@@ -2,14 +2,11 @@
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\OauthController;
+use App\Http\Controllers\OnePloy\PayPalCheckoutController;
 use App\Http\Controllers\ProfileAvatarController;
 use App\Http\Controllers\ProjectIconController;
 use App\Http\Controllers\UploadController;
 use App\Livewire\Admin\Index as AdminIndex;
-use App\Livewire\OnePloy\Billing as OnePloyBilling;
-use App\Livewire\OnePloy\Domains as OnePloyDomains;
-use App\Livewire\OnePloy\Marketplace as OnePloyMarketplace;
-use App\Livewire\OnePloy\Usage as OnePloyUsage;
 use App\Livewire\Boarding\Index as BoardingIndex;
 use App\Livewire\Dashboard;
 use App\Livewire\Destination\Index as DestinationIndex;
@@ -23,6 +20,10 @@ use App\Livewire\Notifications\Pushover as NotificationPushover;
 use App\Livewire\Notifications\Slack as NotificationSlack;
 use App\Livewire\Notifications\Telegram as NotificationTelegram;
 use App\Livewire\Notifications\Webhook as NotificationWebhook;
+use App\Livewire\OnePloy\Billing as OnePloyBilling;
+use App\Livewire\OnePloy\Domains as OnePloyDomains;
+use App\Livewire\OnePloy\Marketplace as OnePloyMarketplace;
+use App\Livewire\OnePloy\Usage as OnePloyUsage;
 use App\Livewire\Profile\Appearance as ProfileAppearance;
 use App\Livewire\Profile\Index as ProfileIndex;
 use App\Livewire\Project\Application\Backup\Index as ApplicationBackupIndex;
@@ -163,6 +164,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/domains', OnePloyDomains::class)->name('oneploy.domains');
     Route::get('/usage', OnePloyUsage::class)->name('oneploy.usage');
     Route::get('/billing', OnePloyBilling::class)->name('oneploy.billing');
+    Route::get('/billing/paypal/return', [PayPalCheckoutController::class, 'complete'])->name('oneploy.paypal.return');
+    Route::get('/billing/paypal/cancel', [PayPalCheckoutController::class, 'cancel'])->name('oneploy.paypal.cancel');
     Route::get('/admin', AdminIndex::class)->name('admin.index');
     Route::get('/onboarding', BoardingIndex::class)->name('onboarding');
 

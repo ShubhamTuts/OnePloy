@@ -42,17 +42,24 @@ class StorefrontController extends Controller
 
     public function checkout(Request $request, CheckoutService $checkout): JsonResponse
     {
+        abort_unless($request->user()?->isAdmin(), 403);
+
         $data = $request->validate([
             'price_id' => 'required|integer|exists:oneploy_prices,id',
             'idempotency_key' => 'nullable|string|max:100',
             'locale' => 'nullable|string|max:16',
-            'coupon' => 'nullable|string|max:64',
             'attribution' => 'nullable|array',
+            'provider' => 'nullable|in:paypal',
         ]);
 
         $team = currentTeam();
         abort_unless($team, 403, 'Select a team before starting checkout.');
         $session = $checkout->create($data, $team, $request->user()?->id);
+        $approvalUrl = $checkout->startPayPal(
+            $session,
+            route('oneploy.paypal.return'),
+            route('oneploy.paypal.cancel'),
+        );
 
         return response()->json([
             'checkout' => [
@@ -60,6 +67,8 @@ class StorefrontController extends Controller
                 'status' => $session->status,
                 'currency' => $session->currency,
                 'amount_minor' => $session->amount_minor,
+                'provider' => 'paypal',
+                'approval_url' => $approvalUrl,
                 'expires_at' => $session->expires_at,
             ],
         ], 201);
@@ -67,6 +76,8 @@ class StorefrontController extends Controller
 
     public function checkoutStatus(Request $request, string $uuid): JsonResponse
     {
+        abort_unless($request->user()?->isAdmin(), 403);
+
         $team = currentTeam();
         abort_unless($team, 403, 'Select a team before viewing checkout.');
         $session = OneployCheckoutSession::query()
@@ -79,6 +90,8 @@ class StorefrontController extends Controller
             'status' => $session->status,
             'currency' => $session->currency,
             'amount_minor' => $session->amount_minor,
+            'provider' => $session->provider,
+            'approval_url' => $session->status === 'pending_provider' ? $session->approval_url : null,
         ]);
     }
 
