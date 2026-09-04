@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\OnePloy\ProvisionDomainJob;
+use App\Jobs\OnePloy\VerifyDomainDnsJob;
 use App\Models\InstanceSettings;
 use App\Models\OneployDnsZone;
 use App\Models\OneployDomain;
@@ -9,6 +10,7 @@ use App\Models\User;
 use App\Notifications\TransactionalEmails\DomainRegistered;
 use App\Services\OnePloy\CheckoutService;
 use App\Services\OnePloy\ConnectResellerClient;
+use App\Services\OnePloy\DnsDelegationVerifier;
 use App\Services\OnePloy\PowerDnsClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -37,6 +39,10 @@ beforeEach(function () {
     config()->set('oneploy.dns.powerdns_api_key', 'powerdns-secret');
     config()->set('oneploy.dns.powerdns_server_id', 'localhost');
     config()->set('oneploy.dns.nameservers', ['ns1.oneploy.dev', 'ns2.oneploy.dev']);
+    config()->set('oneploy.dns.public_resolvers', [
+        'https://dns.google/resolve',
+        'https://cloudflare-dns.com/dns-query',
+    ]);
     Cache::flush();
     InstanceSettings::forceCreate(['id' => 0]);
 
@@ -119,11 +125,27 @@ test('domain checkout encrypts contacts and verified payment provisions registra
     );
 
     $domain = $domain->fresh();
-    expect($domain->status)->toBe('active')
+    expect($domain->status)->toBe('dns_pending')
         ->and($domain->provider_reference)->toBe('9001')
         ->and($domain->expires_at?->toDateString())->toBe('2027-09-03')
-        ->and(OneployDnsZone::query()->where('domain_id', $domain->id)->where('status', 'active')->exists())->toBeTrue();
+        ->and(OneployDnsZone::query()->where('domain_id', $domain->id)->where('status', 'pending_delegation')->exists())->toBeTrue();
+    Queue::assertPushed(VerifyDomainDnsJob::class, fn (VerifyDomainDnsJob $job): bool => $job->domainId === $domain->id);
     Notification::assertSentTo($this->user, DomainRegistered::class);
+    $this->getJson('/api/storefront/v1/domains/'.$domain->uuid)
+        ->assertOk()
+        ->assertJsonPath('status', 'dns_pending')
+        ->assertJsonPath('dns_active', false)
+        ->assertJsonPath('action_required', 'Registration succeeded; waiting for public nameserver delegation verification.');
+
+    $verifier = Mockery::mock(DnsDelegationVerifier::class);
+    $verifier->shouldReceive('isDelegated')
+        ->once()
+        ->with('launch-oneploy.com', ['ns1.oneploy.dev', 'ns2.oneploy.dev'])
+        ->andReturnTrue();
+    (new VerifyDomainDnsJob($domain->id))->handle($verifier);
+
+    expect($domain->fresh()->status)->toBe('active')
+        ->and($domain->dnsZone()->firstOrFail()->status)->toBe('active');
 
     Http::assertSent(function (Request $request): bool {
         return str_ends_with(parse_url($request->url(), PHP_URL_PATH), '/AddClient')
@@ -202,6 +224,19 @@ test('domain status and purchase are admin-only and tenant scoped', function () 
     $this->actingAs($this->user);
     session(['currentTeam' => $this->team]);
     $this->getJson('/api/storefront/v1/domains/'.$otherDomain->uuid)->assertNotFound();
+});
+
+test('domain checkout is blocked before payment when required HA DNS is incomplete', function () {
+    config()->set('oneploy.dns.require_ha', true);
+    config()->set('oneploy.dns.primary_site', 'primary-vps');
+    config()->set('oneploy.dns.secondaries', []);
+    Http::preventStrayRequests();
+
+    $this->postJson('/api/storefront/v1/domains/checkout', oneployDomainPayload('ha-required.com'))
+        ->assertUnprocessable()
+        ->assertJsonPath('message', 'Highly available authoritative DNS must be configured before domain checkout is enabled.');
+
+    Http::assertNothingSent();
 });
 
 /** @return array<string, mixed> */

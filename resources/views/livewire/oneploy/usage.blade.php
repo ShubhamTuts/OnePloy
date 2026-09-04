@@ -12,7 +12,7 @@
             <tbody>
                 @foreach ($quotas as $key => $row)
                     <tr class="border-t border-neutral-200 dark:border-white/10">
-                        <td class="px-4 py-2">{{ $key }}</td>
+                        <td class="px-4 py-2">{{ str($key)->beforeLast('.')->headline() }}</td>
                         <td class="px-4 py-2">{{ $row['used'] }}</td>
                         <td class="px-4 py-2">{{ $row['limit'] ?? 'Unlimited' }}</td>
                     </tr>

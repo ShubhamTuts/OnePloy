@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use DateTimeInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -44,5 +46,18 @@ class OneployPlanVersion extends Model
     public function prices(): HasMany
     {
         return $this->hasMany(OneployPrice::class, 'plan_version_id');
+    }
+
+    public function scopeEffectiveAt(Builder $query, ?DateTimeInterface $at = null): Builder
+    {
+        $at ??= now();
+
+        return $query
+            ->where(fn (Builder $query) => $query
+                ->whereNull('effective_from')
+                ->orWhere('effective_from', '<=', $at))
+            ->where(fn (Builder $query) => $query
+                ->whereNull('effective_until')
+                ->orWhere('effective_until', '>', $at));
     }
 }

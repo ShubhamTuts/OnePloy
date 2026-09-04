@@ -37,6 +37,7 @@ beforeEach(function () {
         $this->team,
         $this->user->id,
     );
+    $this->checkout->update(['provider' => 'stripe']);
 });
 
 function postSignedOnePloyStripeEvent(
@@ -114,6 +115,21 @@ test('a forged signature and a mismatched amount cannot activate checkout', func
         ->assertUnprocessable();
 
     expect($this->checkout->fresh()->status)->toBe('open')
+        ->and(OneployOrder::query()->count())->toBe(0)
+        ->and(OneployInvoice::query()->count())->toBe(0)
+        ->and(OneployPayment::query()->count())->toBe(0);
+});
+
+test('a verified webhook from a different provider cannot activate checkout', function () {
+    $this->checkout->update(['provider' => 'paypal']);
+
+    postSignedOnePloyStripeEvent($this, $this->checkout, $this->checkout->amount_minor, 'evt_wrong_provider')
+        ->assertUnprocessable()
+        ->assertJson(['error' => 'payment provider does not match checkout']);
+
+    expect($this->checkout->fresh()->status)->toBe('open')
+        ->and(OneployPaymentWebhookEvent::query()->where('provider_event_id', 'evt_wrong_provider')->firstOrFail()->status)
+        ->toBe('rejected')
         ->and(OneployOrder::query()->count())->toBe(0)
         ->and(OneployInvoice::query()->count())->toBe(0)
         ->and(OneployPayment::query()->count())->toBe(0);

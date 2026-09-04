@@ -57,3 +57,83 @@ test('PowerDNS creates a native authoritative zone with configured nameservers',
             && $request['dnssec'] === true;
     });
 });
+
+test('PowerDNS provisions primary and independent secondary zones before reporting HA configured', function () {
+    config()->set('oneploy.dns.powerdns_api_url', 'https://ns1-api.private.test');
+    config()->set('oneploy.dns.powerdns_api_key', 'primary-key');
+    config()->set('oneploy.dns.powerdns_server_id', 'localhost');
+    config()->set('oneploy.dns.primary_site', 'provider-a');
+    config()->set('oneploy.dns.require_ha', true);
+    config()->set('oneploy.dns.nameservers', ['ns1.oneploy.dev', 'ns2.oneploy.dev']);
+    config()->set('oneploy.dns.secondaries', [[
+        'api_url' => 'https://ns2-api.private.test',
+        'api_key' => 'secondary-key',
+        'server_id' => 'localhost',
+        'master_ip' => '10.10.0.1',
+        'site' => 'provider-b',
+    ]]);
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://ns1-api.private.test/api/v1/servers/localhost/zones' => Http::response([
+            'name' => 'example.com.',
+            'kind' => 'Primary',
+            'dnssec' => true,
+        ], 201),
+        'https://ns2-api.private.test/api/v1/servers/localhost/zones' => Http::response([
+            'name' => 'example.com.',
+            'kind' => 'Secondary',
+        ], 201),
+    ]);
+
+    $client = app(PowerDnsClient::class);
+    $zone = $client->ensureZone('example.com');
+
+    expect($client->isConfigured())->toBeTrue()
+        ->and($client->isHighAvailabilityConfigured())->toBeTrue()
+        ->and($zone['kind'])->toBe('Primary');
+
+    Http::assertSent(fn (Request $request): bool => $request->url() === 'https://ns1-api.private.test/api/v1/servers/localhost/zones'
+        && $request['kind'] === 'Primary'
+        && $request['masters'] === []);
+    Http::assertSent(fn (Request $request): bool => $request->url() === 'https://ns2-api.private.test/api/v1/servers/localhost/zones'
+        && $request->hasHeader('X-API-Key', 'secondary-key')
+        && $request['kind'] === 'Secondary'
+        && $request['masters'] === ['10.10.0.1']);
+});
+
+test('HA-required DNS stays gated when the secondary is not independently configured', function () {
+    config()->set('oneploy.dns.powerdns_api_url', 'https://dns-api.oneploy.test');
+    config()->set('oneploy.dns.powerdns_api_key', 'primary-key');
+    config()->set('oneploy.dns.primary_site', 'provider-a');
+    config()->set('oneploy.dns.require_ha', true);
+    config()->set('oneploy.dns.nameservers', ['ns1.oneploy.dev', 'ns2.oneploy.dev']);
+    config()->set('oneploy.dns.secondaries', [[
+        'api_url' => 'https://dns-api.oneploy.test',
+        'api_key' => 'secondary-key',
+        'server_id' => 'localhost',
+        'master_ip' => '10.10.0.1',
+        'site' => 'provider-a',
+    ]]);
+
+    $client = app(PowerDnsClient::class);
+
+    expect($client->isHighAvailabilityConfigured())->toBeFalse()
+        ->and($client->isConfigured())->toBeFalse();
+});
+
+test('HA-required DNS rejects plaintext remote secondary API credentials', function () {
+    config()->set('oneploy.dns.powerdns_api_url', 'http://powerdns:8081');
+    config()->set('oneploy.dns.powerdns_api_key', 'primary-key');
+    config()->set('oneploy.dns.primary_site', 'provider-a');
+    config()->set('oneploy.dns.require_ha', true);
+    config()->set('oneploy.dns.nameservers', ['ns1.oneploy.dev', 'ns2.oneploy.dev']);
+    config()->set('oneploy.dns.secondaries', [[
+        'api_url' => 'http://10.10.0.2:8081',
+        'api_key' => 'secondary-key',
+        'server_id' => 'localhost',
+        'master_ip' => '10.10.0.1',
+        'site' => 'provider-b',
+    ]]);
+
+    expect(app(PowerDnsClient::class)->isHighAvailabilityConfigured())->toBeFalse();
+});

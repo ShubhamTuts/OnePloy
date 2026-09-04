@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,8 +27,13 @@ class OneployPlan extends Model
         return $this->hasMany(OneployPlanVersion::class, 'plan_id');
     }
 
-    public function publishedVersion(): ?OneployPlanVersion
+    public function publishedVersion(?DateTimeInterface $at = null): ?OneployPlanVersion
     {
-        return $this->versions()->where('status', 'published')->orderByDesc('version')->first();
+        return $this->versions()
+            ->where('status', 'published')
+            ->effectiveAt($at)
+            ->orderByDesc('version')
+            ->orderByDesc('id')
+            ->first();
     }
 }

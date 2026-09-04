@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Events\TestEvent;
+use App\Exceptions\OnePloy\QuotaExceededException;
 use App\Models\TeamInvitation;
 use App\Models\User;
 use App\Providers\RouteServiceProvider;
+use App\Services\OnePloy\TeamMemberAdmission;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Contracts\View\View;
@@ -124,25 +126,27 @@ class Controller extends BaseController
             return redirect()->route('login')->with('error', 'Invitation has expired or been revoked.');
         }
 
-        $acceptedInvitation = DB::transaction(function () use ($token) {
-            $credentials = $this->magicLinkCredentials($token, lockForUpdate: true);
-            if (! $credentials) {
-                return null;
-            }
+        try {
+            $acceptedInvitation = DB::transaction(function () use ($token) {
+                $credentials = $this->magicLinkCredentials($token, lockForUpdate: true);
+                if (! $credentials) {
+                    return null;
+                }
 
-            [$user, $invitation] = $credentials;
-            $team = $invitation->team;
-            if (! $user->teams()->where('team_id', $team->id)->exists()) {
-                $user->teams()->attach($team->id, ['role' => $invitation->role]);
-            }
+                [$user, $invitation] = $credentials;
+                $team = $invitation->team;
+                app(TeamMemberAdmission::class)->attach($user, $team, $invitation->role);
 
-            $user->forceFill([
-                'password' => Hash::make(Str::random(64)),
-            ])->save();
-            $invitation->delete();
+                $user->forceFill([
+                    'password' => Hash::make(Str::random(64)),
+                ])->save();
+                $invitation->delete();
 
-            return [$user, $team];
-        });
+                return [$user, $team];
+            });
+        } catch (QuotaExceededException $exception) {
+            return redirect()->route('login')->with('error', $exception->getMessage());
+        }
 
         if (! $acceptedInvitation) {
             return redirect()->route('login')->with('error', 'Invitation has expired or been revoked.');
@@ -256,7 +260,11 @@ class Controller extends BaseController
 
             return redirect()->route('team.index');
         }
-        $user->teams()->attach($invitation->team->id, ['role' => $invitation->role]);
+        try {
+            app(TeamMemberAdmission::class)->attach($user, $invitation->team, $invitation->role);
+        } catch (QuotaExceededException $exception) {
+            return redirect()->route('team.index')->with('error', $exception->getMessage());
+        }
         $invitation->delete();
 
         refreshSession($invitation->team);

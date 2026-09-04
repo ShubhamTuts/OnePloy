@@ -9,7 +9,9 @@ use App\Jobs\CheckTraefikVersionJob;
 use App\Jobs\CleanupInstanceStuffsJob;
 use App\Jobs\CleanupOrphanedPreviewContainersJob;
 use App\Jobs\CleanupStaleMultiplexedConnections;
+use App\Jobs\OnePloy\ReconcileManagedComputeCapacityJob;
 use App\Jobs\OnePloy\ReconcilePaymentsJob;
+use App\Jobs\OnePloy\ReconcilePendingDomainDnsJob;
 use App\Jobs\PullChangelog;
 use App\Jobs\PullTemplatesFromCDN;
 use App\Jobs\RegenerateSslCertJob;
@@ -17,6 +19,7 @@ use App\Jobs\ScheduledJobManager;
 use App\Jobs\ServerManagerJob;
 use App\Jobs\UpdateCoolifyJob;
 use App\Models\InstanceSettings;
+use App\Services\OnePloy\ManagedComputeScheduler;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -55,6 +58,19 @@ class Kernel extends ConsoleKernel
         $this->scheduleInstance->job(new ApiTokenExpirationWarningJob)->hourly()->onOneServer();
         $this->scheduleInstance->job(new ReconcilePaymentsJob)
             ->everyFiveMinutes()
+            ->onOneServer()
+            ->withoutOverlapping(4);
+        $this->scheduleInstance->job(new ReconcilePendingDomainDnsJob)
+            ->everyFiveMinutes()
+            ->onOneServer()
+            ->withoutOverlapping(4);
+        $this->scheduleInstance->job(new ReconcileManagedComputeCapacityJob)
+            ->everyMinute()
+            ->onOneServer()
+            ->withoutOverlapping(4);
+        $this->scheduleInstance->call(fn (): int => app(ManagedComputeScheduler::class)->expire())
+            ->name('oneploy:expire-managed-capacity-reservations')
+            ->everyMinute()
             ->onOneServer()
             ->withoutOverlapping(4);
 

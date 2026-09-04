@@ -41,6 +41,12 @@ class PaymentWebhookController extends Controller
             return response()->json(['ok' => true, 'ignored' => true], 202);
         }
 
+        if (blank($session->provider) || ! hash_equals((string) $session->provider, $provider)) {
+            $event->update(['status' => 'rejected', 'processed_at' => now()]);
+
+            return response()->json(['error' => 'payment provider does not match checkout'], 422);
+        }
+
         if (
             $verified['amount_minor'] === null
             || $verified['amount_minor'] !== $session->amount_minor

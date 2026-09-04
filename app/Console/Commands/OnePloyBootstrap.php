@@ -4,8 +4,10 @@ namespace App\Console\Commands;
 
 use App\Actions\Proxy\CheckProxy;
 use App\Actions\Proxy\StartProxy;
-use App\Models\InstanceSettings;
+use App\Jobs\OnePloy\CaptureManagedComputeCapacityJob;
 use App\Models\Server;
+use App\Services\OnePloy\CatalogService;
+use App\Services\OnePloy\ManagedComputeNodeRegistrar;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 
@@ -42,7 +44,8 @@ class OnePloyBootstrap extends Command
 
         $settings->update($payload);
         $this->loadLocalTemplates();
-        app(\App\Services\OnePloy\CatalogService::class)->seed();
+        app(CatalogService::class)->seed();
+        $this->registerLocalManagedCompute();
         $this->startLocalhostProxy();
 
         $this->info('OnePloy bootstrap complete.');
@@ -93,5 +96,29 @@ class OnePloyBootstrap extends Command
         } catch (\Throwable $e) {
             $this->warn('Proxy start deferred: '.$e->getMessage());
         }
+    }
+
+    private function registerLocalManagedCompute(): void
+    {
+        if (! config('oneploy.platform')) {
+            return;
+        }
+
+        $server = Server::find(0);
+        if (! $server) {
+            $this->warn('Localhost server is not available for managed compute registration.');
+
+            return;
+        }
+
+        $node = app(ManagedComputeNodeRegistrar::class)->register(
+            $server,
+            (string) config('oneploy.scheduler.default_pool_slug', 'default'),
+            (string) config('oneploy.scheduler.default_pool_name', 'Default Managed Pool'),
+            (string) config('oneploy.scheduler.primary_region', 'local'),
+            config('oneploy.scheduler.default_workload_classes', ['application', 'service', 'database']),
+        );
+        CaptureManagedComputeCapacityJob::dispatch($node->id);
+        $this->info('Registered localhost in the managed compute pool; capacity probe queued.');
     }
 }

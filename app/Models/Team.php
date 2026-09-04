@@ -15,6 +15,7 @@ use App\Traits\IsTenant;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use OpenApi\Attributes as OA;
 
@@ -273,6 +274,16 @@ class Team extends Model implements SendsDiscord, SendsEmail, SendsPushover, Sen
     public function applications()
     {
         return $this->hasManyThrough(Application::class, Project::class);
+    }
+
+    public function commerceSubscriptions(): HasMany
+    {
+        return $this->hasMany(OneployCommerceSubscription::class);
+    }
+
+    public function quotaReservations(): HasMany
+    {
+        return $this->hasMany(OneployQuotaReservation::class);
     }
 
     public function invitations()

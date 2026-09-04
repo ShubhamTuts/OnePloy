@@ -5,6 +5,7 @@ test('the one click installer uses the supported Docker repository and hard gate
     $installer = file_get_contents($root.'/scripts/oneploy-install.sh');
     $compose = file_get_contents($root.'/docker-compose.oneploy.yml');
     $upgrade = file_get_contents($root.'/scripts/oneploy-upgrade.sh');
+    $dockerfile = file_get_contents($root.'/docker/production/Dockerfile');
 
     expect($installer)
         ->toContain('https://download.docker.com/linux/ubuntu/gpg')
@@ -17,7 +18,9 @@ test('the one click installer uses the supported Docker repository and hard gate
         ->toContain('127.0.0.1:')
         ->and($upgrade)
         ->toContain('Database backup failed. Upgrade aborted')
-        ->toContain('Upgrade health check failed.');
+        ->toContain('Upgrade health check failed.')
+        ->and($dockerfile)
+        ->toContain('ARG SERVERSIDEUP_PHP_VERSION=8.5-fpm-nginx-alpine');
 });
 
 test('the shipped theme wordmarks are the exact approved assets', function () {
@@ -37,4 +40,17 @@ test('release documents contain no unresolved conflict markers', function () {
         ->not->toContain('<<<<<<<')
         ->not->toContain('=======')
         ->not->toContain('>>>>>>>');
+});
+
+test('foundation CI validates the complete OnePloy product test surface', function () {
+    $workflow = file_get_contents(dirname(__DIR__, 2).'/.github/workflows/oneploy-foundation.yml');
+
+    expect($workflow)
+        ->toContain("php-version: '8.5'")
+        ->toContain('npm run build')
+        ->toContain('app/Services/OnePloy')
+        ->toContain('app/Models/Oneploy*.php')
+        ->toContain('php artisan test --compact')
+        ->toContain('tests/Feature/OnePloy*Test.php')
+        ->toContain('tests/Unit/OnePloy*Test.php');
 });

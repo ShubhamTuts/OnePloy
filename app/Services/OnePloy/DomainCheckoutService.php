@@ -15,6 +15,7 @@ class DomainCheckoutService
     public function __construct(
         private readonly ConnectResellerClient $registrar,
         private readonly CheckoutService $checkout,
+        private readonly PowerDnsClient $powerDns,
     ) {}
 
     /** @return array{currency: string, unit_amount_minor: int, amount_minor: int, years: int}|null */
@@ -72,6 +73,14 @@ class DomainCheckoutService
         }
         if (! $this->registrar->isConfigured()) {
             throw new RuntimeException('ConnectReseller must be configured before domain checkout is enabled.');
+        }
+
+        if (! $this->powerDns->isConfigured()) {
+            $message = config('oneploy.dns.require_ha', false)
+                ? 'Highly available authoritative DNS must be configured before domain checkout is enabled.'
+                : 'Authoritative DNS must be configured before domain checkout is enabled.';
+
+            throw new RuntimeException($message);
         }
 
         $nameservers = array_values(config('oneploy.dns.nameservers', []));

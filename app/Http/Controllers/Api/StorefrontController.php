@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\OnePloy\PaymentInitiationException;
 use App\Http\Controllers\Controller;
 use App\Models\OneployCheckoutSession;
 use App\Models\OneployDomain;
@@ -138,7 +139,9 @@ class StorefrontController extends Controller
             'expires_at' => $domain->expires_at,
             'nameservers' => $domain->nameservers,
             'dns_active' => $domain->dnsZone?->status === 'active',
-            'action_required' => $domain->status === 'manual_review' ? $domain->last_error : null,
+            'action_required' => in_array($domain->status, ['manual_review', 'dns_pending'], true)
+                ? $domain->last_error
+                : null,
         ]);
     }
 
@@ -147,33 +150,64 @@ class StorefrontController extends Controller
         abort_unless($request->user()?->isAdmin(), 403);
 
         $data = $request->validate([
-            'price_id' => 'required|integer|exists:oneploy_prices,id',
-            'idempotency_key' => 'nullable|string|max:100',
-            'locale' => 'nullable|string|max:16',
-            'attribution' => 'nullable|array',
-            'provider' => 'nullable|in:paypal',
+            'price_id' => ['required', 'integer', 'exists:oneploy_prices,id'],
+            'idempotency_key' => ['nullable', 'string', 'max:100'],
+            'locale' => ['nullable', 'string', 'max:16'],
+            'attribution' => ['nullable', 'array'],
+            'provider' => ['nullable', 'in:paypal,stripe,razorpay'],
         ]);
 
         $team = currentTeam();
         abort_unless($team, 403, 'Select a team before starting checkout.');
-        $session = $checkout->create($data, $team, $request->user()?->id);
-        $approvalUrl = $checkout->startPayPal(
-            $session,
-            route('oneploy.paypal.return'),
-            route('oneploy.paypal.cancel'),
-        );
+        $provider = strtolower((string) ($data['provider'] ?? config('oneploy.payments.default_provider')));
+
+        try {
+            $session = $checkout->create($data, $team, $request->user()?->id);
+            $session = $checkout->startPayment(
+                $session,
+                $provider,
+                $this->paymentReturnUrl($provider),
+                $this->paymentCancelUrl($provider),
+            );
+        } catch (PaymentInitiationException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 502);
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
 
         return response()->json([
-            'checkout' => [
-                'id' => $session->uuid,
-                'status' => $session->status,
-                'currency' => $session->currency,
-                'amount_minor' => $session->amount_minor,
-                'provider' => 'paypal',
-                'approval_url' => $approvalUrl,
-                'expires_at' => $session->expires_at,
-            ],
+            'checkout' => $this->checkoutPayload($session),
         ], 201);
+    }
+
+    public function initiatePayment(Request $request, string $uuid, CheckoutService $checkout): JsonResponse
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+        $data = $request->validate([
+            'provider' => ['required', 'in:paypal,stripe,razorpay'],
+        ]);
+        $team = currentTeam();
+        abort_unless($team, 403, 'Select a team before starting checkout.');
+        $session = OneployCheckoutSession::query()
+            ->where('team_id', $team->id)
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+        $provider = strtolower($data['provider']);
+
+        try {
+            $session = $checkout->startPayment(
+                $session,
+                $provider,
+                $this->paymentReturnUrl($provider),
+                $this->paymentCancelUrl($provider),
+            );
+        } catch (PaymentInitiationException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 502);
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return response()->json(['checkout' => $this->checkoutPayload($session)]);
     }
 
     public function checkoutStatus(Request $request, string $uuid): JsonResponse
@@ -194,6 +228,7 @@ class StorefrontController extends Controller
             'amount_minor' => $session->amount_minor,
             'provider' => $session->provider,
             'approval_url' => $session->status === 'pending_provider' ? $session->approval_url : null,
+            'provider_data' => $session->status === 'pending_provider' ? $session->provider_payload : null,
         ]);
     }
 
@@ -205,5 +240,34 @@ class StorefrontController extends Controller
             'payments' => config('oneploy.payments.default_provider'),
             'own_releases' => (bool) config('oneploy.own_releases'),
         ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function checkoutPayload(OneployCheckoutSession $session): array
+    {
+        return [
+            'id' => $session->uuid,
+            'status' => $session->status,
+            'currency' => $session->currency,
+            'amount_minor' => $session->amount_minor,
+            'provider' => $session->provider,
+            'approval_url' => $session->approval_url,
+            'provider_data' => $session->provider_payload,
+            'expires_at' => $session->expires_at,
+        ];
+    }
+
+    private function paymentReturnUrl(string $provider): string
+    {
+        return $provider === 'paypal'
+            ? route('oneploy.paypal.return')
+            : route('oneploy.billing').'?checkout=success';
+    }
+
+    private function paymentCancelUrl(string $provider): string
+    {
+        return $provider === 'paypal'
+            ? route('oneploy.paypal.cancel')
+            : route('oneploy.billing').'?checkout=cancelled';
     }
 }

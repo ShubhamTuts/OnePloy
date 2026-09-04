@@ -2,6 +2,7 @@
 
 namespace App\Services\OnePloy;
 
+use App\Exceptions\OnePloy\PaymentInitiationException;
 use App\Jobs\OnePloy\ProvisionDomainJob;
 use App\Models\OneployCheckoutSession;
 use App\Models\OneployCommerceSubscription;
@@ -13,35 +14,34 @@ use App\Models\OneployPaymentWebhookEvent;
 use App\Models\OneployPrice;
 use App\Models\Team;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Throwable;
 
 class CheckoutService
 {
-    public function __construct(private readonly PayPalClient $payPal) {}
+    public function __construct(
+        private readonly PayPalClient $payPal,
+        private readonly PaymentProviderManager $paymentProviders,
+    ) {}
 
     public function create(array $payload, Team $team, ?int $userId = null): OneployCheckoutSession
     {
+        $effectiveAt = now();
         $price = OneployPrice::query()
             ->with('planVersion.plan.product')
             ->whereKey($payload['price_id'])
             ->where('status', 'active')
-            ->where(fn ($query) => $query
-                ->whereNull('effective_from')
-                ->orWhere('effective_from', '<=', now()))
-            ->where(fn ($query) => $query
-                ->whereNull('effective_until')
-                ->orWhere('effective_until', '>', now()))
+            ->effectiveAt($effectiveAt)
             ->whereHas('planVersion', fn ($query) => $query
                 ->where('status', 'published')
-                ->where(fn ($version) => $version
-                    ->whereNull('effective_from')
-                    ->orWhere('effective_from', '<=', now()))
-                ->where(fn ($version) => $version
-                    ->whereNull('effective_until')
-                    ->orWhere('effective_until', '>', now())))
+                ->effectiveAt($effectiveAt))
             ->whereHas('planVersion.plan', fn ($query) => $query->where('is_active', true))
             ->whereHas('planVersion.plan.product', fn ($query) => $query->where('is_active', true))
             ->firstOrFail();
+        $planVersion = $price->planVersion;
+        $plan = $planVersion?->plan;
+        $product = $plan?->product;
         $idempotency = $payload['idempotency_key'] ?? null;
 
         if ($idempotency) {
@@ -50,6 +50,10 @@ class CheckoutService
                 ->where('idempotency_key', $idempotency)
                 ->first();
             if ($existing) {
+                if ((int) data_get($existing->items, '0.price_id') !== $price->id) {
+                    throw new RuntimeException('This idempotency key belongs to a different checkout.');
+                }
+
                 return $existing;
             }
         }
@@ -62,9 +66,24 @@ class CheckoutService
             'locale' => $payload['locale'] ?? null,
             'idempotency_key' => $idempotency,
             'items' => [[
+                'type' => 'plan',
                 'price_id' => $price->id,
-                'product' => $price->planVersion?->plan?->product?->slug,
-                'plan' => $price->planVersion?->plan?->slug,
+                'plan_version_id' => $price->plan_version_id,
+                'product_id' => $product?->id,
+                'product' => $product?->slug,
+                'product_name' => $product?->name,
+                'plan_id' => $plan?->id,
+                'plan' => $plan?->slug,
+                'plan_name' => $plan?->name,
+                'plan_version' => $planVersion?->version,
+                'currency' => $price->currency,
+                'interval' => $price->interval,
+                'quantity' => 1,
+                'unit_amount_minor' => $price->amount_minor,
+                'subtotal_minor' => $price->amount_minor,
+                'discount_minor' => 0,
+                'tax_minor' => 0,
+                'amount_minor' => $price->amount_minor,
             ]],
             'attribution' => $payload['attribution'] ?? null,
             'amount_minor' => $price->amount_minor,
@@ -73,35 +92,124 @@ class CheckoutService
         ]);
     }
 
-    public function startPayPal(OneployCheckoutSession $session, string $returnUrl, string $cancelUrl): string
-    {
-        if ($session->status === 'paid') {
+    public function startPayment(
+        OneployCheckoutSession $session,
+        string $provider,
+        string $returnUrl,
+        string $cancelUrl,
+    ): OneployCheckoutSession {
+        $provider = strtolower($provider);
+        $client = $this->paymentProviders->provider($provider);
+
+        $state = DB::transaction(function () use ($session, $provider): string {
+            $locked = OneployCheckoutSession::query()->whereKey($session->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->status === 'paid') {
+                return 'paid';
+            }
+            if ($locked->expires_at?->isPast()) {
+                $locked->update(['status' => 'expired']);
+
+                return 'expired';
+            }
+            if ($locked->status === 'cancelled') {
+                return 'cancelled';
+            }
+            if (filled($locked->provider) && ! hash_equals((string) $locked->provider, $provider)) {
+                throw new RuntimeException("This checkout is already assigned to {$locked->provider}.");
+            }
+            if (
+                $locked->provider === $provider
+                && $locked->status === 'pending_provider'
+                && filled($locked->provider_reference)
+            ) {
+                return 'ready';
+            }
+            if (
+                $locked->status === 'initiating_provider'
+                && $locked->updated_at?->isAfter(now()->subMinutes(2))
+            ) {
+                return 'initiating';
+            }
+
+            $locked->update([
+                'status' => 'initiating_provider',
+                'provider' => $provider,
+                'provider_reference' => null,
+                'approval_url' => null,
+                'failure_reason' => null,
+                'provider_payload' => null,
+            ]);
+
+            return 'start';
+        });
+
+        if ($state === 'paid') {
             throw new RuntimeException('This checkout has already been paid.');
         }
-        if ($session->expires_at?->isPast()) {
-            $session->update(['status' => 'expired']);
-
+        if ($state === 'expired') {
             throw new RuntimeException('This checkout has expired.');
         }
-
-        if ($session->provider === 'paypal' && filled($session->approval_url) && filled($session->provider_reference)) {
-            return $session->approval_url;
+        if ($state === 'cancelled') {
+            throw new RuntimeException('This checkout was cancelled.');
+        }
+        if ($state === 'initiating') {
+            throw new RuntimeException('This checkout is already being initiated.');
+        }
+        if ($state === 'ready') {
+            return $session->fresh();
         }
 
-        $order = $this->payPal->createOrder($session, $returnUrl, $cancelUrl);
-        $session->update([
-            'status' => 'pending_provider',
-            'provider' => 'paypal',
-            'provider_reference' => $order['id'],
-            'approval_url' => $order['approval_url'],
-            'failure_reason' => null,
-            'provider_payload' => [
-                'order_id' => $order['id'],
-                'status' => $order['status'],
-            ],
-        ]);
+        try {
+            $result = $client->initiate($session->fresh(), $returnUrl, $cancelUrl);
+        } catch (Throwable $exception) {
+            OneployCheckoutSession::query()
+                ->whereKey($session->id)
+                ->where('provider', $provider)
+                ->where('status', 'initiating_provider')
+                ->update([
+                    'status' => 'open',
+                    'failure_reason' => 'The payment provider could not start checkout.',
+                ]);
+            Log::warning('oneploy.payment.initiation_failed', [
+                'checkout_id' => $session->uuid,
+                'team_id' => $session->team_id,
+                'provider' => $provider,
+                'exception' => $exception::class,
+            ]);
 
-        return $order['approval_url'];
+            throw new PaymentInitiationException;
+        }
+
+        return DB::transaction(function () use ($session, $provider, $result): OneployCheckoutSession {
+            $locked = OneployCheckoutSession::query()->whereKey($session->id)->lockForUpdate()->firstOrFail();
+            if ($locked->status === 'paid') {
+                return $locked;
+            }
+            if ($locked->provider !== $provider || $locked->status !== 'initiating_provider') {
+                throw new PaymentInitiationException;
+            }
+
+            $locked->update([
+                'status' => 'pending_provider',
+                'provider_reference' => $result['provider_reference'],
+                'approval_url' => $result['approval_url'],
+                'failure_reason' => null,
+                'provider_payload' => $result['public_payload'],
+            ]);
+
+            return $locked->fresh();
+        });
+    }
+
+    public function startPayPal(OneployCheckoutSession $session, string $returnUrl, string $cancelUrl): string
+    {
+        $session = $this->startPayment($session, 'paypal', $returnUrl, $cancelUrl);
+        if (blank($session->approval_url)) {
+            throw new PaymentInitiationException;
+        }
+
+        return $session->approval_url;
     }
 
     public function completePayPal(OneployCheckoutSession $session, string $orderId): OneployOrder

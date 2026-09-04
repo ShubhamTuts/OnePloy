@@ -25,7 +25,7 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: '8.5'
           extensions: mbstring, curl, dom, fileinfo, intl, pcntl, pdo_pgsql, pdo_sqlite, posix, redis, sodium, sockets, xml, zip
           coverage: none
 
@@ -44,9 +44,16 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Check modified PHP formatting
+      - name: Check OnePloy PHP formatting
         run: >-
           vendor/bin/pint --test
+          app/Http/Controllers/Api/PaymentWebhookController.php
+          app/Http/Controllers/Api/StorefrontController.php
+          app/Http/Controllers/OnePloy
+          app/Jobs/OnePloy
+          app/Livewire/OnePloy
+          app/Models/Oneploy*.php
+          app/Services/OnePloy
           app/Actions/Team/CreateTenant.php
           app/Actions/Server/UpdateCoolify.php
           app/Jobs/CheckForUpdatesJob.php
@@ -59,6 +66,9 @@ jobs:
           app/Policies/ServicePolicy.php
           bootstrap/helpers/applications.php
           config/oneploy.php
+          database/migrations/*oneploy*.php
+          tests/Feature/OnePloy*Test.php
+          tests/Unit/OnePloy*Test.php
           tests/Feature/CreateTenantActionTest.php
           tests/Feature/QueueApplicationDeploymentCommitTest.php
           tests/Unit/Policies/ApplicationPolicyTest.php
@@ -68,10 +78,11 @@ jobs:
           tests/Unit/CoolifyUpgradeStatusTest.php
           tests/Unit/UpdateCoolifyTest.php
 
-      - name: Run OnePloy tenancy tests
+      - name: Run OnePloy product and tenancy tests
         run: >-
-          php artisan test
-          tests/Feature/OnePloyTenancyTest.php
+          php artisan test --compact
+          tests/Feature/OnePloy*Test.php
+          tests/Unit/OnePloy*Test.php
           tests/Feature/CreateTenantActionTest.php
           tests/Feature/TeamCreateSetsMcpDefaultTest.php
           tests/Feature/QueueApplicationDeploymentCommitTest.php

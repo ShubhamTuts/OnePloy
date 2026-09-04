@@ -1,0 +1,314 @@
+name: Release OnePloy Containers
+run-name: Release OnePloy ${{ inputs.version || github.ref_name }}
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Stable SemVer to publish (for example, 1.2.3; no leading v)
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: oneploy-production-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, verify, and publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    env:
+      REGISTRY: ghcr.io
+
+    steps:
+      - name: Check out the release source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate and prepare release metadata
+        id: prepare
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REQUESTED_VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${EVENT_NAME}" == 'workflow_dispatch' ]]; then
+            if [[ "${GITHUB_REF}" != 'refs/heads/main' ]]; then
+              echo "::error::Manual production releases must be dispatched from the main branch."
+              exit 1
+            fi
+            release_version="${REQUESTED_VERSION}"
+          elif [[ "${EVENT_NAME}" == 'push' ]]; then
+            if [[ ! "${GITHUB_REF_NAME}" =~ ^v ]]; then
+              echo "::error::Tag-triggered production releases must use vX.Y.Z."
+              exit 1
+            fi
+            release_version="${GITHUB_REF_NAME#v}"
+          else
+            echo "::error::Unsupported release event: ${EVENT_NAME}"
+            exit 1
+          fi
+
+          if [[ ! "${release_version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Stable SemVer versions must use X.Y.Z without a leading v or zero-padded numbers."
+            exit 1
+          fi
+
+          source_sha="$(git rev-parse HEAD)"
+          if [[ "${EVENT_NAME}" == 'push' ]] && ! git merge-base --is-ancestor "${source_sha}" refs/remotes/origin/main; then
+            echo "::error::The release tag must point to a commit contained in main."
+            exit 1
+          fi
+
+          registry_owner="$(printf '%s' "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          app_image="${REGISTRY}/${registry_owner}/oneploy-app"
+          realtime_image="${REGISTRY}/${registry_owner}/oneploy-realtime"
+          coolify_version="$(jq -er '.coolify.v4.version | select(type == "string" and length > 0)' versions.json)"
+
+          {
+            echo "version=${release_version}"
+            echo "app_image=${app_image}"
+            echo "realtime_image=${realtime_image}"
+            echo "staging_tag=staging-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            echo "coolify_version=${coolify_version}"
+            echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "source_sha=${source_sha}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Reject existing release tags
+        shell: bash
+        env:
+          APP_IMAGE: ${{ steps.prepare.outputs.app_image }}
+          REALTIME_IMAGE: ${{ steps.prepare.outputs.realtime_image }}
+          VERSION: ${{ steps.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          assert_tag_available() {
+            local reference="$1"
+            local inspection
+
+            if inspection="$(docker buildx imagetools inspect "$reference" 2>&1)"; then
+              echo "::error::Release tag already exists and will not be overwritten: ${reference}"
+              return 1
+            fi
+
+            if ! grep -Eqi 'manifest unknown|name unknown|not found|404' <<<"${inspection}"; then
+              echo "::error::Unable to prove that release tag is available: ${reference}"
+              printf '%s\n' "${inspection}"
+              return 1
+            fi
+          }
+
+          assert_tag_available "${APP_IMAGE}:${VERSION}"
+          assert_tag_available "${REALTIME_IMAGE}:${VERSION}"
+
+      - name: Build and stage the application image
+        id: build_app
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: ./docker/production/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.prepare.outputs.app_image }}:${{ steps.prepare.outputs.staging_tag }}
+          build-args: |
+            COOLIFY_VERSION=${{ steps.prepare.outputs.coolify_version }}
+          labels: |
+            org.opencontainers.image.created=${{ steps.prepare.outputs.created }}
+            org.opencontainers.image.description=OnePloy application control plane
+            org.opencontainers.image.revision=${{ steps.prepare.outputs.source_sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.prepare.outputs.version }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=oneploy-release-app
+          cache-to: type=gha,mode=max,scope=oneploy-release-app
+
+      - name: Build and stage the realtime image
+        id: build_realtime
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: ./docker/coolify-realtime/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.prepare.outputs.realtime_image }}:${{ steps.prepare.outputs.staging_tag }}
+          labels: |
+            org.opencontainers.image.created=${{ steps.prepare.outputs.created }}
+            org.opencontainers.image.description=OnePloy realtime and terminal service
+            org.opencontainers.image.revision=${{ steps.prepare.outputs.source_sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.prepare.outputs.version }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=oneploy-release-realtime
+          cache-to: type=gha,mode=max,scope=oneploy-release-realtime
+
+      - name: Scan the application amd64 image by digest
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_PLATFORM: linux/amd64
+        with:
+          image-ref: ${{ steps.prepare.outputs.app_image }}@${{ steps.build_app.outputs.digest }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: false
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      - name: Scan the application arm64 image by digest
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_PLATFORM: linux/arm64
+        with:
+          image-ref: ${{ steps.prepare.outputs.app_image }}@${{ steps.build_app.outputs.digest }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: false
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      - name: Scan the realtime amd64 image by digest
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_PLATFORM: linux/amd64
+        with:
+          image-ref: ${{ steps.prepare.outputs.realtime_image }}@${{ steps.build_realtime.outputs.digest }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: false
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      - name: Scan the realtime arm64 image by digest
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_PLATFORM: linux/arm64
+        with:
+          image-ref: ${{ steps.prepare.outputs.realtime_image }}@${{ steps.build_realtime.outputs.digest }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: false
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Sign and verify staged image digests
+        shell: bash
+        env:
+          APP_DIGEST: ${{ steps.build_app.outputs.digest }}
+          APP_IMAGE: ${{ steps.prepare.outputs.app_image }}
+          REALTIME_DIGEST: ${{ steps.build_realtime.outputs.digest }}
+          REALTIME_IMAGE: ${{ steps.prepare.outputs.realtime_image }}
+        run: |
+          set -euo pipefail
+
+          certificate_identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/oneploy-release.yml@${GITHUB_REF}"
+          oidc_issuer="https://token.actions.githubusercontent.com"
+
+          cosign sign --yes "${APP_IMAGE}@${APP_DIGEST}"
+          cosign sign --yes "${REALTIME_IMAGE}@${REALTIME_DIGEST}"
+
+          cosign verify --certificate-identity "${certificate_identity}" --certificate-oidc-issuer "${oidc_issuer}" "${APP_IMAGE}@${APP_DIGEST}"
+          cosign verify --certificate-identity "${certificate_identity}" --certificate-oidc-issuer "${oidc_issuer}" "${REALTIME_IMAGE}@${REALTIME_DIGEST}"
+
+      - name: Revalidate and publish immutable version tags
+        shell: bash
+        env:
+          APP_DIGEST: ${{ steps.build_app.outputs.digest }}
+          APP_IMAGE: ${{ steps.prepare.outputs.app_image }}
+          REALTIME_DIGEST: ${{ steps.build_realtime.outputs.digest }}
+          REALTIME_IMAGE: ${{ steps.prepare.outputs.realtime_image }}
+          VERSION: ${{ steps.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          assert_tag_available() {
+            local reference="$1"
+            local inspection
+
+            if inspection="$(docker buildx imagetools inspect "$reference" 2>&1)"; then
+              echo "::error::Release tag already exists and will not be overwritten: ${reference}"
+              return 1
+            fi
+
+            if ! grep -Eqi 'manifest unknown|name unknown|not found|404' <<<"${inspection}"; then
+              echo "::error::Unable to prove that release tag is available: ${reference}"
+              printf '%s\n' "${inspection}"
+              return 1
+            fi
+          }
+
+          assert_published_digest() {
+            local reference="$1"
+            local expected_digest="$2"
+            local published_digest
+
+            published_digest="$(docker buildx imagetools inspect "$reference" | awk '$1 == "Digest:" { print $2; exit }')"
+            if [[ "${published_digest}" != "${expected_digest}" ]]; then
+              echo "::error::Published digest does not match the scanned and signed digest for ${reference}."
+              return 1
+            fi
+          }
+
+          assert_tag_available "${APP_IMAGE}:${VERSION}"
+          assert_tag_available "${REALTIME_IMAGE}:${VERSION}"
+
+          docker buildx imagetools create --tag "${REALTIME_IMAGE}:${VERSION}" "${REALTIME_IMAGE}@${REALTIME_DIGEST}"
+          assert_published_digest "${REALTIME_IMAGE}:${VERSION}" "${REALTIME_DIGEST}"
+
+          docker buildx imagetools create --tag "${APP_IMAGE}:${VERSION}" "${APP_IMAGE}@${APP_DIGEST}"
+          assert_published_digest "${APP_IMAGE}:${VERSION}" "${APP_DIGEST}"
+
+      - name: Write release summary
+        shell: bash
+        env:
+          APP_DIGEST: ${{ steps.build_app.outputs.digest }}
+          APP_IMAGE: ${{ steps.prepare.outputs.app_image }}
+          REALTIME_DIGEST: ${{ steps.build_realtime.outputs.digest }}
+          REALTIME_IMAGE: ${{ steps.prepare.outputs.realtime_image }}
+          VERSION: ${{ steps.prepare.outputs.version }}
+        run: |
+          {
+            echo "## OnePloy ${VERSION}"
+            echo
+            echo "| Image | Immutable version | Digest |"
+            echo "| --- | --- | --- |"
+            echo "| Application | ${APP_IMAGE}:${VERSION} | ${APP_DIGEST} |"
+            echo "| Realtime | ${REALTIME_IMAGE}:${VERSION} | ${REALTIME_DIGEST} |"
+            echo
+            echo "### Pull by digest (recommended)"
+            echo
+            echo "docker pull ${APP_IMAGE}@${APP_DIGEST}"
+            echo "docker pull ${REALTIME_IMAGE}@${REALTIME_DIGEST}"
+          } >> "${GITHUB_STEP_SUMMARY}"

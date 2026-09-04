@@ -1,0 +1,28 @@
+services:
+  powerdns-secondary:
+    image: "${POWERDNS_IMAGE:-powerdns/pdns-auth-50:5.0.7}"
+    container_name: oneploy-powerdns-secondary
+    restart: always
+    command:
+      - "--secondary=yes"
+      - "--allow-notify-from=${POWERDNS_PRIMARY_IP:?Set POWERDNS_PRIMARY_IP to the primary DNS host IP or CIDR}"
+    environment:
+      PDNS_AUTH_API_KEY: "${POWERDNS_API_KEY:?Set a unique secondary POWERDNS_API_KEY}"
+    ports:
+      - "${POWERDNS_PUBLIC_BIND_ADDRESS:-0.0.0.0}:53:53/tcp"
+      - "${POWERDNS_PUBLIC_BIND_ADDRESS:-0.0.0.0}:53:53/udp"
+      - "${POWERDNS_API_BIND_ADDRESS:-127.0.0.1}:${POWERDNS_API_PORT:-8081}:8081/tcp"
+    volumes:
+      - oneploy-powerdns-secondary:/var/lib/powerdns
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: [ "CMD", "pdns_control", "ping" ]
+      interval: 5s
+      retries: 20
+      start_period: 15s
+      timeout: 3s
+
+volumes:
+  oneploy-powerdns-secondary:
+    name: oneploy-powerdns-secondary

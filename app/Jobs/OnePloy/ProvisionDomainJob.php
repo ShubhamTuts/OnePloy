@@ -104,13 +104,16 @@ class ProvisionDomainJob implements ShouldBeUnique, ShouldQueue
                     [
                         'team_id' => $domain->team_id,
                         'name' => $domain->name,
-                        'status' => 'active',
+                        'status' => 'pending_delegation',
                         'records' => data_get($zone, 'rrsets', []),
                         'dnssec' => (bool) data_get($zone, 'dnssec', false),
                     ],
                 );
-                $domain->update(['status' => 'active']);
-                $dnsActive = true;
+                $domain->update([
+                    'status' => 'dns_pending',
+                    'last_error' => 'Registration succeeded; waiting for public nameserver delegation verification.',
+                ]);
+                VerifyDomainDnsJob::dispatch($domain->id)->delay(now()->addMinutes(2));
             } catch (Throwable $exception) {
                 report($exception);
                 $domain->update(['last_error' => 'Registration succeeded, but authoritative DNS activation needs attention.']);

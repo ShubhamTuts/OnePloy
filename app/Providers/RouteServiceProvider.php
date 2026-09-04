@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\PersonalAccessToken;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
@@ -57,6 +58,19 @@ class RouteServiceProvider extends ServiceProvider
 
         RateLimiter::for('feedback', function (Request $request) {
             return Limit::perMinute(3)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('oneploy-ai-gateway', function (Request $request) {
+            $teamId = filled($request->bearerToken())
+                ? PersonalAccessToken::findToken($request->bearerToken())?->team_id
+                : data_get($request->user()?->currentAccessToken(), 'team_id');
+            $identity = $teamId === null
+                ? 'ip:'.sha1($request->ip())
+                : 'team:'.$teamId;
+
+            return Limit::perMinute(
+                max(1, (int) config('oneploy.ai_gateway.rate_limit_per_minute', 30)),
+            )->by('oneploy-ai-gateway:'.$identity);
         });
 
         RateLimiter::for('login', function (Request $request) {

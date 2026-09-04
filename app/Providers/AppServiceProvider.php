@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Contracts\OnePloy\ManagedNodeProbe;
 use App\Models\PersonalAccessToken;
+use App\Observers\OnePloy\ResourceQuotaObserver;
+use App\Services\OnePloy\SshManagedNodeProbe;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +20,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(StripeClient::class, fn () => new StripeClient(config('subscription.stripe_api_key')));
+        $this->app->bind(ManagedNodeProbe::class, SshManagedNodeProbe::class);
     }
 
     public function boot(): void
@@ -41,6 +45,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Disabled because it's causing issues with the application
         // Model::shouldBeStrict();
+
+        ResourceQuotaObserver::register();
     }
 
     private function configurePasswords(): void

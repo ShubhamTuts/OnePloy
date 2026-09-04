@@ -34,6 +34,7 @@ use App\Models\StandalonePostgresql;
 use App\Models\StandaloneRedis;
 use App\Models\SwarmDocker;
 use App\Models\Tag;
+use App\Observers\OnePloy\ResourceQuotaObserver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -853,15 +854,26 @@ class ServerTransferImporter
             ? (data_get($attributes, 'status') ?: 'exited')
             : 'exited';
 
-        // Avoid auto-created default volumes; we restore exported ones.
-        $database = $modelClass::withoutEvents(function () use ($modelClass, $attributes, $uuid) {
-            $database = new $modelClass;
-            $database->forceFill(collect($attributes)->except(['uuid'])->all());
-            $database->uuid = $uuid;
-            $database->save();
+        // Avoid auto-created default volumes; we restore exported ones. Quota
+        // admission remains explicit because withoutEvents also suppresses observers.
+        $database = new $modelClass;
+        $database->forceFill(collect($attributes)->except(['uuid'])->all());
+        $database->uuid = $uuid;
 
-            return $database;
-        });
+        $quotaObserver = app(ResourceQuotaObserver::class);
+        $quotaObserver->creating($database);
+
+        try {
+            $modelClass::withoutEvents(function () use ($database): void {
+                $database->save();
+            });
+        } catch (Throwable $exception) {
+            $quotaObserver->creationFailed($database);
+
+            throw $exception;
+        }
+
+        $quotaObserver->created($database);
 
         $this->importEnvVars(data_get($payload, 'environment_variables', []), $database, false);
         $this->importPersistentStorages(data_get($payload, 'persistent_storages', []), $database);

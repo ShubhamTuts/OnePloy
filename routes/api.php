@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\GitlabController;
 use App\Http\Controllers\Api\HetznerController;
 use App\Http\Controllers\Api\InstanceEmailSettingsController;
 use App\Http\Controllers\Api\NotificationsController;
+use App\Http\Controllers\Api\OneployAiGatewayController;
 use App\Http\Controllers\Api\OtherController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\ResourcesController;
@@ -53,6 +54,7 @@ Route::prefix('storefront/v1')->middleware('throttle:60,1')->group(function () {
     Route::get('/domains/{uuid}', [StorefrontController::class, 'domainStatus'])->middleware(['auth:sanctum']);
     Route::get('/status', [StorefrontController::class, 'status']);
     Route::get('/checkout/{uuid}', [StorefrontController::class, 'checkoutStatus'])->middleware(['auth:sanctum']);
+    Route::post('/checkout/{uuid}/payment', [StorefrontController::class, 'initiatePayment'])->middleware(['auth:sanctum']);
     Route::post('/checkout', [StorefrontController::class, 'checkout'])->middleware(['auth:sanctum']);
 });
 
@@ -139,6 +141,9 @@ Route::group([
     Route::patch('/cloud-tokens/{uuid}', [CloudProviderTokensController::class, 'update'])->middleware(['api.ability:write']);
     Route::delete('/cloud-tokens/{uuid}', [CloudProviderTokensController::class, 'destroy'])->middleware(['api.ability:write']);
     Route::post('/cloud-tokens/{uuid}/validate', [CloudProviderTokensController::class, 'validateToken'])->middleware(['api.ability:write']);
+
+    Route::post('/ai/chat/completions', [OneployAiGatewayController::class, 'chatCompletions'])
+        ->middleware(['api.ability:write', 'throttle:oneploy-ai-gateway']);
 
     Route::get('/cloud-init-scripts', [CloudInitScriptsController::class, 'index'])->middleware(['api.ability:read']);
     Route::post('/cloud-init-scripts', [CloudInitScriptsController::class, 'store'])->middleware(['api.ability:write']);

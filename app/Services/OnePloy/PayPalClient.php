@@ -2,6 +2,7 @@
 
 namespace App\Services\OnePloy;
 
+use App\Contracts\OnePloy\PaymentProviderClient;
 use App\Models\OneployCheckoutSession;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
@@ -11,11 +12,20 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
 
-class PayPalClient
+class PayPalClient implements PaymentProviderClient
 {
+    public function provider(): string
+    {
+        return 'paypal';
+    }
+
     public function isConfigured(): bool
     {
-        return filled(config('oneploy.payments.paypal_client_id'))
+        $baseUrl = (string) config('oneploy.payments.paypal_base_url');
+
+        return parse_url($baseUrl, PHP_URL_SCHEME) === 'https'
+            && filled(parse_url($baseUrl, PHP_URL_HOST))
+            && filled(config('oneploy.payments.paypal_client_id'))
             && filled(config('oneploy.payments.paypal_secret'))
             && filled(config('oneploy.payments.paypal_webhook_id'));
     }
@@ -73,6 +83,24 @@ class PayPalClient
             'id' => $id,
             'approval_url' => $approvalUrl,
             'status' => (string) $response->json('status', 'CREATED'),
+        ];
+    }
+
+    /**
+     * @return array{provider_reference: string, approval_url: string, status: string, public_payload: array<string, mixed>}
+     */
+    public function initiate(OneployCheckoutSession $checkout, string $returnUrl, string $cancelUrl): array
+    {
+        $order = $this->createOrder($checkout, $returnUrl, $cancelUrl);
+
+        return [
+            'provider_reference' => $order['id'],
+            'approval_url' => $order['approval_url'],
+            'status' => $order['status'],
+            'public_payload' => [
+                'order_id' => $order['id'],
+                'status' => $order['status'],
+            ],
         ];
     }
 

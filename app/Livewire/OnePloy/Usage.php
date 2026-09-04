@@ -2,40 +2,24 @@
 
 namespace App\Livewire\OnePloy;
 
-use App\Models\Team;
+use App\Services\OnePloy\EntitlementResolver;
+use App\Services\OnePloy\TeamResourceUsage;
+use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
 class Usage extends Component
 {
-    public function render()
+    public function render(EntitlementResolver $entitlements, TeamResourceUsage $usage): View
     {
         $team = currentTeam();
 
         return view('livewire.oneploy.usage', [
-            'quotas' => collect(config('tenancy.quotas'))->mapWithKeys(function (string $key) use ($team) {
+            'quotas' => collect(TeamResourceUsage::MEASURABLE_QUOTA_KEYS)->mapWithKeys(function (string $key) use ($team, $entitlements, $usage) {
                 return [$key => [
-                    'limit' => $team?->quota($key),
-                    'used' => $this->used($team, $key),
+                    'limit' => $team ? $entitlements->limit($team, $key) : 0,
+                    'used' => $team ? $usage->for($team, $key) : 0,
                 ]];
             }),
         ]);
-    }
-
-    private function used(?Team $team, string $key): int
-    {
-        if (! $team) {
-            return 0;
-        }
-
-        try {
-            return match ($key) {
-                'max_applications' => (int) $team->applications()->count(),
-                'max_databases' => 0,
-                'max_services' => 0,
-                default => 0,
-            };
-        } catch (\Throwable) {
-            return 0;
-        }
     }
 }

@@ -87,6 +87,9 @@ services:
     image: "${POWERDNS_IMAGE:-powerdns/pdns-auth-50:5.0.7}"
     container_name: oneploy-powerdns
     restart: always
+    command:
+      - "--primary=yes"
+      - "--allow-axfr-ips=${POWERDNS_SECONDARY_IPS:?Set POWERDNS_SECONDARY_IPS to the secondary DNS host IP or CIDR}"
     networks:
       - coolify
     environment:
@@ -96,6 +99,8 @@ services:
       - "53:53/udp"
     volumes:
       - oneploy-powerdns:/var/lib/powerdns
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: [ "CMD", "pdns_control", "ping" ]
       interval: 5s

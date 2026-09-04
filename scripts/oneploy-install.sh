@@ -154,7 +154,7 @@ fi
 section "1/8 Packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
-apt-get install -y curl wget git jq openssl ca-certificates gnupg lsb-release
+apt-get install -y curl wget git jq openssl ca-certificates gnupg lsb-release util-linux
 
 section "2/8 Docker Engine"
 if ! command -v docker >/dev/null 2>&1; then
@@ -229,8 +229,11 @@ fi
 
 cp -f "${ONEPLOY_DIR}/docker-compose.yml" "${SOURCE_DIR}/docker-compose.yml"
 cp -f "${ONEPLOY_DIR}/docker-compose.oneploy.yml" "${SOURCE_DIR}/docker-compose.oneploy.yml"
-cp -f "${ONEPLOY_DIR}/scripts/oneploy-upgrade.sh" "${SOURCE_DIR}/oneploy-upgrade.sh"
-chmod +x "${SOURCE_DIR}/oneploy-upgrade.sh"
+cp -f "${ONEPLOY_DIR}/docker-compose.dns-secondary.yml" "${SOURCE_DIR}/docker-compose.dns-secondary.yml"
+for oneploy_script in oneploy-upgrade.sh oneploy-backup.sh oneploy-backup-verify.sh oneploy-restore.sh; do
+    cp -f "${ONEPLOY_DIR}/scripts/${oneploy_script}" "${SOURCE_DIR}/${oneploy_script}"
+    chmod +x "${SOURCE_DIR}/${oneploy_script}"
+done
 
 if [ -f "${ONEPLOY_DIR}/.env.production" ]; then
     if [ -f "$ENV_FILE" ]; then
@@ -292,6 +295,11 @@ set_env POWERDNS_IMAGE "powerdns/pdns-auth-50:5.0.7"
 set_env POWERDNS_API_URL "http://powerdns:8081"
 set_env POWERDNS_API_KEY "$(rand_b64)"
 set_env POWERDNS_SERVER_ID "localhost"
+set_env POWERDNS_SECONDARY_IPS "127.0.0.1/32"
+set_env ONEPLOY_DNS_PRIMARY_SITE "primary-vps"
+set_env ONEPLOY_DNS_REQUIRE_HA "true"
+set_env ONEPLOY_DNS_SECONDARIES "[]"
+set_env ONEPLOY_BACKUP_PASSPHRASE_FILE "/root/.config/oneploy/backup-passphrase"
 force_env APP_PORT "$APP_PORT"
 force_env APP_NAME "OnePloy"
 force_env APP_ENV "production"
@@ -325,10 +333,28 @@ if [ -n "$ROOT_USER_PASSWORD" ]; then force_env ROOT_USER_PASSWORD "$ROOT_USER_P
 if [ -n "$NAMESERVERS" ]; then force_env ONEPLOY_NAMESERVERS "$NAMESERVERS"; fi
 
 OPTIONAL_CONFIGURATION_KEYS=(
+    ONEPLOY_PAYMENT_PROVIDER
+    STRIPE_SECRET STRIPE_WEBHOOK_SECRET STRIPE_BASE_URL
+    RAZORPAY_KEY RAZORPAY_SECRET RAZORPAY_WEBHOOK_SECRET RAZORPAY_BASE_URL
     PAYPAL_CLIENT_ID PAYPAL_SECRET PAYPAL_WEBHOOK_ID PAYPAL_MODE PAYPAL_BASE_URL
     CONNECTRESELLER_API_URL CONNECTRESELLER_API_KEY CONNECTRESELLER_BRAND_ID
     ONEPLOY_DOMAIN_PRICES ONEPLOY_DOMAIN_CURRENCY ONEPLOY_DOMAIN_MARKUP_PERCENT
-    POWERDNS_IMAGE POWERDNS_API_URL POWERDNS_API_KEY POWERDNS_SERVER_ID ONEPLOY_NAMESERVERS POWERDNS_DNSSEC
+    POWERDNS_IMAGE POWERDNS_API_URL POWERDNS_API_KEY POWERDNS_SERVER_ID POWERDNS_SECONDARY_IPS
+    ONEPLOY_DNS_PRIMARY_SITE ONEPLOY_DNS_REQUIRE_HA ONEPLOY_DNS_SECONDARIES
+    ONEPLOY_NAMESERVERS POWERDNS_DNSSEC ONEPLOY_DNS_PUBLIC_RESOLVERS
+    ONEPLOY_CAPACITY_SNAPSHOT_MAX_AGE_SECONDS ONEPLOY_RESERVATION_TTL_SECONDS
+    ONEPLOY_CAPACITY_ALLOCATION_PERCENT ONEPLOY_SYSTEM_RESERVED_CPU_MILLIS
+    ONEPLOY_SYSTEM_RESERVED_MEMORY_MB ONEPLOY_SYSTEM_RESERVED_DISK_GB
+    ONEPLOY_CAPACITY_SNAPSHOT_RETENTION ONEPLOY_CAPACITY_PROBE_TIMEOUT_SECONDS
+    ONEPLOY_CAPACITY_PROBE_BATCH_SIZE
+    ONEPLOY_DEFAULT_COMPUTE_POOL ONEPLOY_DEFAULT_COMPUTE_POOL_NAME
+    ONEPLOY_PRIMARY_REGION ONEPLOY_COMPUTE_WORKLOAD_CLASSES
+    ONEPLOY_AI_GATEWAY_ENABLED ONEPLOY_AI_GATEWAY_RATE_LIMIT
+    ONEPLOY_AI_GATEWAY_CONNECT_TIMEOUT ONEPLOY_AI_GATEWAY_TIMEOUT
+    ONEPLOY_AI_GATEWAY_CONNECTION_ATTEMPTS ONEPLOY_AI_GATEWAY_DEFAULT_MAX_TOKENS
+    ONEPLOY_AI_GATEWAY_MODELS OPENAI_BASE_URL OPENAI_API_KEY
+    ONEPLOY_REQUIRE_OFFSITE_BACKUP ONEPLOY_BACKUP_DESTINATION
+    ONEPLOY_BACKUP_PASSPHRASE_FILE ONEPLOY_BACKUP_RETENTION_DAYS
 )
 for optional_key in "${OPTIONAL_CONFIGURATION_KEYS[@]}"; do
     optional_value="${!optional_key:-}"
@@ -336,6 +362,14 @@ for optional_key in "${OPTIONAL_CONFIGURATION_KEYS[@]}"; do
         force_env "$optional_key" "$optional_value"
     fi
 done
+
+BACKUP_PASSPHRASE_FILE_VALUE="$(grep '^ONEPLOY_BACKUP_PASSPHRASE_FILE=' "$ENV_FILE" | cut -d= -f2- || true)"
+BACKUP_PASSPHRASE_FILE_VALUE="${BACKUP_PASSPHRASE_FILE_VALUE:-/root/.config/oneploy/backup-passphrase}"
+install -d -m 700 "$(dirname "$BACKUP_PASSPHRASE_FILE_VALUE")"
+if [ ! -f "$BACKUP_PASSPHRASE_FILE_VALUE" ]; then
+    openssl rand -base64 48 > "$BACKUP_PASSPHRASE_FILE_VALUE"
+fi
+chmod 600 "$BACKUP_PASSPHRASE_FILE_VALUE"
 
 chown -R 9999:root "${DATA_DIR}" || true
 chmod 700 "$ENV_FILE"
@@ -437,9 +471,15 @@ First login: open the dashboard and create the root user unless ROOT_USER_* was 
 Upgrade later:
   sudo bash ${SOURCE_DIR}/oneploy-upgrade.sh
 
+Encrypted backup:
+  sudo bash ${SOURCE_DIR}/oneploy-backup.sh
+Verify a backup:
+  sudo bash ${SOURCE_DIR}/oneploy-backup-verify.sh /path/to/oneploy-control-plane-*.tar.gz.enc
+
 Keep a backup of ${ENV_FILE} off this server.
 
 Logs: docker logs -f coolify
 Authoritative DNS: docker logs -f oneploy-powerdns
+Managed compute: docker exec coolify php artisan oneploy:compute-node status 0
 ============================================================
 EOF
