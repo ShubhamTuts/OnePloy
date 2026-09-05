@@ -11,6 +11,7 @@ use Illuminate\Support\Once;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    config()->set('app.maintenance.store', 'array');
     $this->withoutMiddleware([DecideWhatToDoWithUser::class, CheckForcePasswordReset::class]);
     Once::flush();
     if (! InstanceSettings::find(0)) {

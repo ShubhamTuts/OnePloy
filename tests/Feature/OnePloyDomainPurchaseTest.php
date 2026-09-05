@@ -163,6 +163,24 @@ test('domain checkout encrypts contacts and verified payment provisions registra
     });
 });
 
+test('public domain search returns display-ready quote and flat suggestions', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        '*/checkdomainavailable*' => Http::response([
+            'responseMsg' => ['statusCode' => 200, 'message' => 'Domain is available'],
+            'responseData' => ['available' => true, 'isPremium' => false],
+        ]),
+    ]);
+
+    $this->getJson('/api/storefront/v1/domains/search?q=launch-oneploy.com&currency=USD')
+        ->assertOk()
+        ->assertJsonPath('availability.available', true)
+        ->assertJsonPath('quote.amount_minor', 1299)
+        ->assertJsonPath('quote.formatted', 'USD 12.99')
+        ->assertJsonCount(3, 'suggestions')
+        ->assertJsonStructure(['suggestions' => [0]]);
+});
+
 test('an uncertain registrar purchase is not retried and moves to manual review', function () {
     Http::preventStrayRequests();
     Http::fake(function (Request $request) {
@@ -173,7 +191,7 @@ test('an uncertain registrar purchase is not retried and moves to manual review'
             str_ends_with($path, '/v2/checkout/orders') => Http::response([
                 'id' => 'PAYPAL-DOMAIN-2',
                 'status' => 'CREATED',
-                'links' => [['rel' => 'approve', 'href' => 'https://paypal.test/domain-2']],
+                'links' => [['rel' => 'approve', 'href' => 'https://www.sandbox.paypal.com/domain-2']],
             ], 201),
             str_ends_with($path, '/checkdomainavailable') => Http::response([
                 'responseMsg' => ['statusCode' => 200],

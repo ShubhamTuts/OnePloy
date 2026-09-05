@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\MarketingCheckoutController;
 use App\Http\Controllers\OauthController;
 use App\Http\Controllers\OnePloy\PayPalCheckoutController;
 use App\Http\Controllers\ProfileAvatarController;
@@ -22,6 +23,7 @@ use App\Livewire\Notifications\Telegram as NotificationTelegram;
 use App\Livewire\Notifications\Webhook as NotificationWebhook;
 use App\Livewire\OnePloy\Billing as OnePloyBilling;
 use App\Livewire\OnePloy\Domains as OnePloyDomains;
+use App\Livewire\OnePloy\MarketingCheckout as OnePloyMarketingCheckout;
 use App\Livewire\OnePloy\Marketplace as OnePloyMarketplace;
 use App\Livewire\OnePloy\Usage as OnePloyUsage;
 use App\Livewire\Profile\Appearance as ProfileAppearance;
@@ -116,6 +118,9 @@ use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
 
 Route::post('/forgot-password', [Controller::class, 'forgot_password'])->name('password.forgot')->middleware('throttle:forgot-password');
+Route::get('/marketing/checkout', MarketingCheckoutController::class)
+    ->middleware('throttle:30,1')
+    ->name('oneploy.marketing-checkout.accept');
 Route::get('/realtime', [Controller::class, 'realtime_test'])->middleware('auth');
 Route::get('/verify', [Controller::class, 'verify'])->middleware('auth')->name('verify.email');
 Route::get('/email/verify/{id}/{hash}', [Controller::class, 'email_verify'])->middleware(['auth'])->name('verify.verify');
@@ -164,6 +169,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/domains', OnePloyDomains::class)->name('oneploy.domains');
     Route::get('/usage', OnePloyUsage::class)->name('oneploy.usage');
     Route::get('/billing', OnePloyBilling::class)->name('oneploy.billing');
+    Route::get('/marketing/checkout/confirm', OnePloyMarketingCheckout::class)->name('oneploy.marketing-checkout.confirm');
     Route::get('/billing/paypal/return', [PayPalCheckoutController::class, 'complete'])->name('oneploy.paypal.return');
     Route::get('/billing/paypal/cancel', [PayPalCheckoutController::class, 'cancel'])->name('oneploy.paypal.cancel');
     Route::get('/admin', AdminIndex::class)->name('admin.index');

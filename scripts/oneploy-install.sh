@@ -154,7 +154,7 @@ fi
 section "1/8 Packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
-apt-get install -y curl wget git jq openssl ca-certificates gnupg lsb-release util-linux
+apt-get install -y curl wget git jq openssl ca-certificates gnupg lsb-release util-linux zip
 
 section "2/8 Docker Engine"
 if ! command -v docker >/dev/null 2>&1; then
@@ -291,6 +291,9 @@ set_env REDIS_PASSWORD "$(rand_b64)"
 set_env PUSHER_APP_ID "$(rand_hex 16)"
 set_env PUSHER_APP_KEY "$(rand_hex 16)"
 set_env PUSHER_APP_SECRET "$(rand_hex 16)"
+set_env ONEPLOY_WORDPRESS_BRIDGE_KEY_ID "default"
+set_env ONEPLOY_WORDPRESS_BRIDGE_SECRET "$(rand_b64)"
+set_env ONEPLOY_WORDPRESS_BRIDGE_TTL_SECONDS "900"
 set_env POWERDNS_IMAGE "powerdns/pdns-auth-50:5.0.7"
 set_env POWERDNS_API_URL "http://powerdns:8081"
 set_env POWERDNS_API_KEY "$(rand_b64)"
@@ -337,6 +340,8 @@ OPTIONAL_CONFIGURATION_KEYS=(
     STRIPE_SECRET STRIPE_WEBHOOK_SECRET STRIPE_BASE_URL
     RAZORPAY_KEY RAZORPAY_SECRET RAZORPAY_WEBHOOK_SECRET RAZORPAY_BASE_URL
     PAYPAL_CLIENT_ID PAYPAL_SECRET PAYPAL_WEBHOOK_ID PAYPAL_MODE PAYPAL_BASE_URL
+    ONEPLOY_WORDPRESS_BRIDGE_KEY_ID ONEPLOY_WORDPRESS_BRIDGE_SECRET
+    ONEPLOY_WORDPRESS_BRIDGE_TTL_SECONDS ONEPLOY_MARKETING_SITE_URL
     CONNECTRESELLER_API_URL CONNECTRESELLER_API_KEY CONNECTRESELLER_BRAND_ID
     ONEPLOY_DOMAIN_PRICES ONEPLOY_DOMAIN_CURRENCY ONEPLOY_DOMAIN_MARKUP_PERCENT
     POWERDNS_IMAGE POWERDNS_API_URL POWERDNS_API_KEY POWERDNS_SERVER_ID POWERDNS_SECONDARY_IPS
@@ -475,6 +480,11 @@ Encrypted backup:
   sudo bash ${SOURCE_DIR}/oneploy-backup.sh
 Verify a backup:
   sudo bash ${SOURCE_DIR}/oneploy-backup-verify.sh /path/to/oneploy-control-plane-*.tar.gz.enc
+
+WordPress Bridge package:
+  sudo bash ${ONEPLOY_DIR}/scripts/package-wordpress-bridge.sh ${ONEPLOY_DIR}/dist
+Then copy the generated bridge secret from ${ENV_FILE} into wp-config.php as
+ONEPLOY_BRIDGE_SECRET. Do not expose that secret in WordPress content or JavaScript.
 
 Keep a backup of ${ENV_FILE} off this server.
 

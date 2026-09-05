@@ -48,6 +48,10 @@ class Domains extends Component
     public function mount(): void
     {
         abort_unless(auth()->user()?->isAdmin(), 403);
+        $marketingDomain = trim((string) request()->query('domain'));
+        if (preg_match('/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i', $marketingDomain) === 1) {
+            $this->query = strtolower($marketingDomain);
+        }
         $this->currency = strtoupper((string) config('oneploy.domains.default_currency', 'USD'));
         $this->registrantName = (string) auth()->user()?->name;
         $this->registrantEmail = (string) auth()->user()?->email;

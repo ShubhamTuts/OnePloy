@@ -44,10 +44,11 @@ class StorefrontController extends Controller
             'domain' => ['required', 'string', 'max:253', 'regex:/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i'],
         ])->validate();
         $currency = strtoupper((string) $request->query('currency', config('oneploy.domains.default_currency')));
+        $suggestions = $registrar->suggest($domain);
 
         return response()->json([
             'availability' => $registrar->availability($domain),
-            'suggestions' => $registrar->suggest($domain),
+            'suggestions' => array_values((array) ($suggestions['suggestions'] ?? [])),
             'quote' => $domainCheckout->quote($domain, $currency),
         ]);
     }

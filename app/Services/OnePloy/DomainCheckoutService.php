@@ -18,7 +18,7 @@ class DomainCheckoutService
         private readonly PowerDnsClient $powerDns,
     ) {}
 
-    /** @return array{currency: string, unit_amount_minor: int, amount_minor: int, years: int}|null */
+    /** @return array{currency: string, unit_amount_minor: int, amount_minor: int, years: int, formatted: string}|null */
     public function quote(string $domain, ?string $currency = null, int $years = 1): ?array
     {
         $domain = strtolower(trim($domain));
@@ -49,6 +49,7 @@ class DomainCheckoutService
             'unit_amount_minor' => $unitAmount,
             'amount_minor' => $unitAmount * $years,
             'years' => $years,
+            'formatted' => $currency.' '.number_format(($unitAmount * $years) / 100, 2),
         ];
     }
 

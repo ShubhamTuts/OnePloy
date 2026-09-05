@@ -27,11 +27,19 @@ class FortifyServiceProvider extends ServiceProvider
             public function toResponse($request)
             {
                 // First user (root) will be redirected to /settings instead of / on registration.
-                if ($request->user()->currentTeam->id === 0) {
+                if ($request->user()->currentTeam()?->id === 0) {
                     return redirect()->route('settings.index');
                 }
+                $intended = $request->session()->get('url.intended');
+                if (
+                    ! $request->user()->hasVerifiedEmail()
+                    && is_string($intended)
+                    && hash_equals(route('oneploy.marketing-checkout.confirm'), $intended)
+                ) {
+                    return redirect()->route('verify.email');
+                }
 
-                return redirect(RouteServiceProvider::HOME);
+                return redirect()->intended(RouteServiceProvider::HOME);
             }
         });
     }
@@ -88,16 +96,16 @@ class FortifyServiceProvider extends ServiceProvider
                     if (! $user->teams()->where('team_id', $invitation->team->id)->exists()) {
                         $user->teams()->attach($invitation->team->id, ['role' => $invitation->role]);
                     }
-                    $user->currentTeam = $invitation->team;
+                    $currentTeam = $invitation->team;
                     $invitation->delete();
                 } else {
                     // Normal login - use personal team
-                    $user->currentTeam = $user->teams->firstWhere('personal_team', true);
-                    if (! $user->currentTeam) {
-                        $user->currentTeam = $user->recreate_personal_team();
+                    $currentTeam = $user->teams->firstWhere('personal_team', true);
+                    if (! $currentTeam) {
+                        $currentTeam = $user->recreate_personal_team();
                     }
                 }
-                session(['currentTeam' => $user->currentTeam]);
+                session(['currentTeam' => $currentTeam]);
 
                 return $user;
             }

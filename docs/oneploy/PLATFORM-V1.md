@@ -1,6 +1,6 @@
 # OnePloy Platform V1
 
-Status date: 2026-09-03
+Status date: 2026-09-05
 
 This document is the product and architecture contract for OnePloy V1. It records both the intended platform and the verified implementation boundary. A listed capability is not automatically shipped: the status labels below are authoritative and must be updated only when persistence, authorization, application logic, operations, recovery, and tests exist.
 
@@ -47,7 +47,8 @@ Customer-facing identity must use OnePloy branding, links, documentation, suppor
 | Managed WordPress, games, n8n, and AI applications | PARTIAL | Keep deployable templates; certify and productize only tested managed workflows. |
 | AI Gateway and admin AI | PLANNED | Provider-neutral routing with budgets, versioned cost, redaction, and policy approvals. |
 | OnePloy-owned installer, release artifacts, and updater | PARTIAL | The Ubuntu source-build installer and backup-gated updater are owned here; blank-VPS acceptance and signed multi-architecture artifacts remain release gates. |
-| WordPress Bridge and `@oneploy/storefront` SDK | PLANNED | Consume Storefront API product truth; never expose private credentials in browsers. |
+| WordPress Bridge | EXTERNAL BLOCKER | Repository implementation includes cached pricing, short-lived signed hosted checkout handoff, domain search, status, generic-form binding, administrator documentation, packaging, and tests. Installation of the ZIP on the target WordPress 6.2+/PHP 7.4+ site and live provider acceptance remain required. |
+| `@oneploy/storefront` SDK | PLANNED | Provide typed Storefront API clients and optional UI primitives without exposing private credentials in browsers. |
 
 ## Identity, authorization, and isolation
 
@@ -135,9 +136,9 @@ Control-plane recovery covers database, configuration, encrypted metadata, and r
 
 ## Integration contracts
 
-**OnePloy Bridge** connects WordPress to Storefront and checkout APIs; it is not a billing database. Its server-side settings include API URL, storefront/integration ID, public key, encrypted secret, webhook secret, currency/locale policy, and optional reseller context. Gutenberg, Elementor, shortcodes, common form plugins, and generic forms may render or map catalog, pricing, domains, status, leads, support, and checkout while preserving original form behavior. Last-known public catalog data may be cached; payment state may not.
+**OnePloy Bridge** connects WordPress to the public Storefront API and OnePloy-hosted checkout; it is not a billing database. The shipped plugin keeps its shared signing secret outside WordPress options, produces short-lived server-signed checkout handoffs, and never places private credentials or authoritative payment state in the browser. Gutenberg, Elementor, shortcodes, common form plugins, and generic forms can render pricing, checkout, domain search, and status while preserving original form submission. Last-known public catalog data may be cached; checkout handoffs and payment state may not.
 
-`@oneploy/storefront` provides typed catalog, plans, pricing, applications, domains, checkout, and status clients plus optional React pricing, currency, domain, checkout, and app-catalog primitives. Private administrative credentials never enter browser bundles.
+`@oneploy/storefront` will provide typed catalog, plans, pricing, applications, domains, checkout, and status clients plus optional React pricing, currency, domain, checkout, and app-catalog primitives. Private administrative credentials will never enter browser bundles.
 
 New commerce UI is locale-aware, supports localized content and transactional communication, formats currencies/dates correctly, supports IDN/Punycode domains, and uses RTL-capable layout primitives.
 

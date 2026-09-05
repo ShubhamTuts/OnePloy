@@ -76,6 +76,10 @@ function allowedPathsForUnsubscribedAccounts()
 {
     return [
         'subscription/new',
+        'marketing/checkout/confirm',
+        'billing',
+        'billing/paypal/return',
+        'billing/paypal/cancel',
         'login',
         'logout',
         'force-password-reset',

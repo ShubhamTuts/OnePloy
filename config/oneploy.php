@@ -24,6 +24,13 @@ return [
         'currencies' => array_values(array_filter(array_map('trim', explode(',', (string) env('ONEPLOY_CURRENCIES', 'USD,INR,EUR,GBP,AUD,CAD,AED,SGD'))))),
     ],
 
+    'wordpress_bridge' => [
+        'key_id' => env('ONEPLOY_WORDPRESS_BRIDGE_KEY_ID', 'default'),
+        'secret' => env('ONEPLOY_WORDPRESS_BRIDGE_SECRET'),
+        'marketing_url' => env('ONEPLOY_MARKETING_SITE_URL'),
+        'ttl_seconds' => (int) env('ONEPLOY_WORDPRESS_BRIDGE_TTL_SECONDS', 900),
+    ],
+
     'domains' => [
         'connectreseller_api_url' => env('CONNECTRESELLER_API_URL', 'https://api.connectreseller.com/ConnectReseller/ESHOP'),
         'connectreseller_api_key' => env('CONNECTRESELLER_API_KEY'),

@@ -1,8 +1,10 @@
 import { initializeTerminalComponent } from './terminal.js';
 import { registerLivewireRequestFailureHandler } from './livewire-request-failure.js';
+import { registerOnePloyMarketingCheckout } from './oneploy-marketing-checkout.js';
 
 document.addEventListener('livewire:init', () => {
     registerLivewireRequestFailureHandler(window.Livewire);
+    registerOnePloyMarketingCheckout(window.Livewire);
 });
 
 // Livewire 3.5.19+ re-applies `x-cloak` to morphed elements during wire:navigate

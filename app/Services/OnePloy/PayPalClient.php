@@ -78,6 +78,9 @@ class PayPalClient implements PaymentProviderClient
         if (! is_string($id) || ! is_string($approvalUrl)) {
             throw new RuntimeException('PayPal did not return an order and approval URL.');
         }
+        if (! $this->approvalUrlAllowed($approvalUrl)) {
+            throw new RuntimeException('PayPal returned an unsafe approval URL.');
+        }
 
         return [
             'id' => $id,
@@ -215,6 +218,19 @@ class PayPalClient implements PaymentProviderClient
     private function majorAmount(int $amountMinor): string
     {
         return number_format($amountMinor / 100, 2, '.', '');
+    }
+
+    private function approvalUrlAllowed(string $url): bool
+    {
+        $apiHost = strtolower((string) parse_url((string) config('oneploy.payments.paypal_base_url'), PHP_URL_HOST));
+        $expectedHost = str_contains($apiHost, 'sandbox.paypal.com')
+            ? 'www.sandbox.paypal.com'
+            : 'www.paypal.com';
+        $port = parse_url($url, PHP_URL_PORT);
+
+        return strtolower((string) parse_url($url, PHP_URL_SCHEME)) === 'https'
+            && strtolower((string) parse_url($url, PHP_URL_HOST)) === $expectedHost
+            && ($port === null || $port === 443);
     }
 
     private function minorAmount(mixed $amount): ?int

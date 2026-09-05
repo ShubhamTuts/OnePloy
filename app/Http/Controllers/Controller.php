@@ -69,7 +69,7 @@ class Controller extends BaseController
             event(new Verified($user));
         }
 
-        return redirect(RouteServiceProvider::HOME);
+        return redirect()->intended(RouteServiceProvider::HOME);
     }
 
     public function forgot_password(Request $request)

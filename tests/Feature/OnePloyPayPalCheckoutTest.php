@@ -12,6 +12,7 @@ use App\Models\Team;
 use App\Models\User;
 use App\Services\OnePloy\CatalogService;
 use App\Services\OnePloy\CheckoutService;
+use App\Services\OnePloy\PayPalClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
@@ -152,6 +153,32 @@ test('a verified PayPal capture webhook activates a matching checkout idempotent
             && $request['webhook_id'] === 'WH-ONEPLOY'
             && $request['transmission_id'] === 'transmission-1';
     });
+});
+
+test('PayPal rejects an approval URL outside the configured environment', function () {
+    $checkout = app(CheckoutService::class)->create(
+        ['price_id' => $this->price->id],
+        $this->team,
+        $this->user->id,
+    );
+    Http::preventStrayRequests();
+    Http::fake([
+        '*/v1/oauth2/token' => Http::response(['access_token' => 'access-token', 'expires_in' => 3600]),
+        '*/v2/checkout/orders' => Http::response([
+            'id' => 'PAYPAL-UNSAFE',
+            'status' => 'CREATED',
+            'links' => [[
+                'rel' => 'payer-action',
+                'href' => 'https://attacker.example/pretend-paypal',
+            ]],
+        ], 201),
+    ]);
+
+    expect(fn () => app(PayPalClient::class)->createOrder(
+        $checkout,
+        route('oneploy.paypal.return'),
+        route('oneploy.paypal.cancel'),
+    ))->toThrow(RuntimeException::class, 'PayPal returned an unsafe approval URL.');
 });
 
 test('members cannot start or inspect billing checkout', function () {
